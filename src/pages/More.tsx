@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import InstallPWA from '@/components/InstallPWA';
 
 export default function More() {
   return (
@@ -29,6 +30,8 @@ export default function More() {
         >
           ডেটা রিসেট করুন (Reset)
         </Button>
+
+      <InstallPWA />
       </div>
     </div>
   );
