@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useKhataStore } from "../store/useKhataStore";
-import { popularCategories } from "../types";
+import { popularCategories, Transaction } from "../types";
 import { Banknote, Calendar as CalendarIcon, Tag, PencilLine, CheckCircle2 } from "lucide-react";
 
 const formSchema = z.object({
@@ -29,39 +29,65 @@ type FormData = z.infer<typeof formSchema>;
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editingTransaction?: Transaction | null;
 }
 
-export default function AddTransactionModal({ open, onOpenChange }: Props) {
+export default function AddTransactionModal({ open, onOpenChange, editingTransaction = null }: Props) {
   const [type, setType] = useState<"income" | "expense">("expense");
   const addTransaction = useKhataStore((state) => state.addTransaction);
+  const updateTransaction = useKhataStore((state) => state.updateTransaction);
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: editingTransaction ? {
+      type: editingTransaction.type,
+      amount: editingTransaction.amount,
+      category: editingTransaction.category,
+      notes: editingTransaction.notes,
+      date: editingTransaction.date,
+    } : {
       type: "expense",
       date: new Date().toISOString().split("T")[0],
     },
   });
 
   useEffect(() => {
+    if (editingTransaction) {
+      setType(editingTransaction.type);
+    } else {
+      setType("expense");
+    }
+  }, [editingTransaction]);
+
+  useEffect(() => {
     setValue("type", type);
   }, [type, setValue]);
 
   const onSubmit = (data: FormData) => {
-    addTransaction({
-      type: data.type,
-      amount: data.amount,
-      category: data.category,
-      notes: data.notes,
-      date: data.date,
-    });
+    if (editingTransaction) {
+      updateTransaction(editingTransaction.id, {
+        type: data.type,
+        amount: data.amount,
+        category: data.category,
+        notes: data.notes,
+        date: data.date,
+      });
+    } else {
+      addTransaction({
+        type: data.type,
+        amount: data.amount,
+        category: data.category,
+        notes: data.notes,
+        date: data.date,
+      });
+    }
     reset();
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px] rounded-[3rem] h-screen overflow-y-auto border-none p-8 shadow-2xl bg-white ">
+      <DialogContent className="sm:max-w-[450px] flex flex-col  rounded-[3rem] h-auto max-h-screen overflow-y-auto items-start justify-start border-none p-8 shadow-2xl bg-white ">
         
         {/* Modal Header */}
         <DialogHeader className="mb-6">
@@ -74,7 +100,7 @@ export default function AddTransactionModal({ open, onOpenChange }: Props) {
         <Tabs
           value={type}
           onValueChange={(v) => setType(v as typeof type)}
-          className="w-full mb-8"
+          className="w-full "
         >
           <TabsList className="grid w-full grid-cols-2 p-1.5 bg-slate-100 rounded-2xl h-14">
             <TabsTrigger 

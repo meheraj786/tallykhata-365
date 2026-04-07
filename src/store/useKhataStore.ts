@@ -5,6 +5,7 @@ import { Transaction } from '../types';
 interface KhataStore {
   transactions: Transaction[];
   addTransaction: (tx: Omit<Transaction, 'id'>) => void;
+  updateTransaction: (id: string, tx: Omit<Transaction, 'id'>) => void;
   deleteTransaction: (id: string) => void;
   getTotalIncome: () => number;
   getTotalExpense: () => number;
@@ -24,6 +25,13 @@ export const useKhataStore = create<KhataStore>()(
         };
         set((state) => ({ transactions: [newTx, ...state.transactions] }));
       },
+
+      updateTransaction: (id, tx) =>
+        set((state) => ({
+          transactions: state.transactions.map((t) =>
+            t.id === id ? { ...tx, id } : t
+          ),
+        })),
 
       deleteTransaction: (id) =>
         set((state) => ({

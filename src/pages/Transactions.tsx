@@ -8,6 +8,8 @@ import {
   AlertCircle,
   X,
   Calendar,
+  Edit2,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,13 +21,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useKhataStore } from "../store/useKhataStore";
+import { popularCategories } from "../types";
 
 export default function Transactions() {
-  const { transactions, deleteTransaction } = useKhataStore();
+  const { transactions, deleteTransaction, updateTransaction } =
+    useKhataStore();
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [deleteTxId, setDeleteTxId] = useState<string | null>(null);
+  const [editingTx, setEditingTx] = useState<string | null>(null);
+  const [editData, setEditData] = useState({
+    date: "",
+    type: "expense" as "income" | "expense",
+    amount: 0,
+    category: "",
+    notes: "",
+  });
 
   const availableYears = [
     "all",
@@ -57,6 +69,30 @@ export default function Transactions() {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
   const balance = totalIncome - totalExpense;
+
+  const handleEditClick = (tx: (typeof filteredTx)[0]) => {
+    setEditingTx(tx.id);
+    setEditData({
+      date: tx.date,
+      type: tx.type,
+      amount: tx.amount,
+      category: tx.category,
+      notes: tx.notes || "",
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (editingTx && editData.category && editData.amount > 0) {
+      updateTransaction(editingTx, {
+        date: editData.date,
+        type: editData.type,
+        amount: editData.amount,
+        category: editData.category,
+        notes: editData.notes,
+      });
+      setEditingTx(null);
+    }
+  };
 
   const groupedTx = filteredTx.reduce(
     (groups, tx) => {
@@ -334,12 +370,20 @@ export default function Transactions() {
                                   {tx.amount.toLocaleString("bn-BD")}
                                 </p>
                               </div>
-                              <button
-                                onClick={() => setDeleteTxId(tx.id)}
-                                className="md:opacity-0 group-hover:opacity-100 p-3 text-slate-200 hover:text-rose-500 transition-all rounded-xl hover:bg-rose-50"
-                              >
-                                <Trash2 size={20} />
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditClick(tx)}
+                                  className="md:opacity-0 group-hover:opacity-100 p-3 text-slate-200 hover:text-emerald-500 transition-all rounded-xl hover:bg-emerald-50"
+                                >
+                                  <Edit2 size={20} />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteTxId(tx.id)}
+                                  className="md:opacity-0 group-hover:opacity-100 p-3 text-slate-200 hover:text-rose-500 transition-all rounded-xl hover:bg-rose-50"
+                                >
+                                  <Trash2 size={20} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -351,6 +395,132 @@ export default function Transactions() {
           </div>
         </div>
       </div>
+
+      {/* Edit Transaction Dialog */}
+      <Dialog open={!!editingTx} onOpenChange={() => setEditingTx(null)}>
+        <DialogContent className="rounded-[3rem] max-w-md border-none p-8 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-bold tracking-tight text-slate-900">
+              লেনদেন সম্পাদনা
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-6">
+            {/* Date Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700">তারিখ</label>
+              <Input
+                type="date"
+                value={editData.date}
+                onChange={(e) =>
+                  setEditData({ ...editData, date: e.target.value })
+                }
+                className="rounded-2xl bg-slate-50 border-none h-11 font-semibold"
+              />
+            </div>
+
+            {/* Type Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700">ধরন</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setEditData({ ...editData, type: "income" })}
+                  className={`p-3 rounded-2xl font-bold transition-all ${
+                    editData.type === "income"
+                      ? "bg-emerald-100 text-emerald-700 border-2 border-emerald-500"
+                      : "bg-slate-50 text-slate-600 border-2 border-transparent hover:bg-slate-100"
+                  }`}
+                >
+                  আয়
+                </button>
+                <button
+                  onClick={() => setEditData({ ...editData, type: "expense" })}
+                  className={`p-3 rounded-2xl font-bold transition-all ${
+                    editData.type === "expense"
+                      ? "bg-rose-100 text-rose-700 border-2 border-rose-500"
+                      : "bg-slate-50 text-slate-600 border-2 border-transparent hover:bg-slate-100"
+                  }`}
+                >
+                  ব্যয়
+                </button>
+              </div>
+            </div>
+
+            {/* Amount Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700">
+                পরিমাণ (৳)
+              </label>
+              <Input
+                type="number"
+                value={editData.amount}
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    amount: parseInt(e.target.value) || 0,
+                  })
+                }
+                className="rounded-2xl bg-slate-50 border-none h-11 font-semibold"
+              />
+            </div>
+
+            {/* Category Input */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 ml-1">
+                <Tag size={16} className="text-slate-400" />
+                <label className="text-sm font-bold text-slate-700">
+                  ক্যাটাগরি
+                </label>
+              </div>
+              <select
+                value={editData.category}
+                onChange={(e) =>
+                  setEditData({ ...editData, category: e.target.value })
+                }
+                className="w-full h-11 px-4 font-semibold rounded-2xl bg-slate-50 border-none text-sm focus:ring-2 focus:ring-emerald-500/20 appearance-none cursor-pointer"
+              >
+                <option value="">ক্যাটাগরি সিলেক্ট করুন</option>
+                {popularCategories[editData.type].map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Notes Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700">
+                বিবরণ (ঐচ্ছিক)
+              </label>
+              <Input
+                type="text"
+                value={editData.notes}
+                onChange={(e) =>
+                  setEditData({ ...editData, notes: e.target.value })
+                }
+                placeholder="অতিরিক্ত তথ্য..."
+                className="rounded-2xl bg-slate-50 border-none h-11 font-semibold"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-row gap-4">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-2xl h-12 font-bold border-slate-100 hover:bg-slate-50"
+              onClick={() => setEditingTx(null)}
+            >
+              বাতিল
+            </Button>
+            <Button
+              className="flex-1 rounded-2xl h-12 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100"
+              onClick={handleSaveEdit}
+            >
+              সংরক্ষণ করুন
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteTxId} onOpenChange={() => setDeleteTxId(null)}>
