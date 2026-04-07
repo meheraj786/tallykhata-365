@@ -11,15 +11,21 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'খাতা - Daily Tally Khata',
-        short_name: 'খাতা',
-        description: 'আয়-ব্যয়ের সহজ ডিজিটাল খাতা | Works Offline',
-        theme_color: '#10b981',
-        background_color: '#0f172a',
-        display: 'standalone',
+        name: 'Amar Khata',
+        short_name: 'Amar-Khata',
+        description: 'সহজে আয়-ব্যয় ট্র্যাক করুন',
+        theme_color: '#ffffff',
         icons: [
-          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
         ]
       }
     })
@@ -30,3 +36,5 @@ export default defineConfig({
     },
   },
 })
+
+

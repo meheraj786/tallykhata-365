@@ -18,7 +18,8 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "types": ["node", "vite/client", "vite-plugin-pwa/client"]
   },
   "include": ["src"]
 }
