@@ -153,11 +153,13 @@ export default function AddTransactionModal({ open, onOpenChange }: Props) {
           <div className="space-y-3">
             <div className="flex items-center gap-2 ml-1">
                <PencilLine size={16} className="text-slate-400" />
-               <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">নোট (ঐচ্ছিক)</Label>
+               <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">নোট (ঐচ্ছিক / Max 20 Character)</Label>
             </div>
             <Input 
               placeholder="বিস্তারিত কিছু লিখুন..." 
               {...register("notes")} 
+              max={20}
+              maxLength={20}
               className="h-14 font-semibold rounded-2xl bg-slate-50 border-none px-5 focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>

@@ -1,6 +1,5 @@
 import {
   Plus,
-  TrendingUp,
   ArrowUpRight,
   ArrowDownLeft,
   Wallet,
@@ -161,7 +160,7 @@ export default function Home({ onAddClick }: Props) {
                 {recentTransactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-4 rounded-3xl flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all cursor-pointer"
+                    className="group bg-white text-wrap line-clamp-2 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-4 rounded-3xl flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all cursor-pointer"
                   >
                     <div className="flex items-center gap-4">
                       <div
