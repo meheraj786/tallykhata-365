@@ -14,11 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useKhataStore } from "../store/useKhataStore";
 import { popularCategories, Transaction } from "../types";
-import { 
-  Banknote, 
-  Calendar as CalendarIcon, 
-  Tag, 
-  PencilLine, 
+import {  
   CheckCircle2, 
   Plus, 
   Trash2, 
@@ -38,8 +34,8 @@ const bulkSchema = z.object({
   transactions: z.array(singleSchema).min(1),
 });
 
-type FormData = z.infer<typeof singleSchema>;
-type BulkFormData = z.infer<typeof bulkSchema>;
+// type FormData = z.infer<typeof singleSchema>;
+// type BulkFormData = z.infer<typeof bulkSchema>;
 
 interface Props {
   open: boolean;
@@ -52,7 +48,7 @@ export default function AddTransactionModal({ open, onOpenChange, editingTransac
   const [type, setType] = useState<"income" | "expense">("expense");
   const { addTransaction, updateTransaction } = useKhataStore();
 
-  const { register, handleSubmit, setValue, reset, control, formState: { errors } } = useForm<any>({
+  const { register, handleSubmit, setValue, reset, control, formState: { _ } } = useForm<any>({
     resolver: zodResolver(mode === "single" ? singleSchema : bulkSchema),
     defaultValues: {
       type: "expense",
