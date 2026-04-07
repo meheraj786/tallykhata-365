@@ -1,7 +1,15 @@
 import { useState } from "react";
-import { Trash2, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import {
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Filter,
+  AlertCircle,
+  X,
+  Calendar,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +18,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useKhataStore } from "../store/useKhataStore";
 
 export default function Transactions() {
@@ -20,7 +27,6 @@ export default function Transactions() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [deleteTxId, setDeleteTxId] = useState<string | null>(null);
 
-  // Get unique years from transactions
   const availableYears = [
     "all",
     ...Array.from(
@@ -31,21 +37,15 @@ export default function Transactions() {
   const filteredTx = transactions
     .filter((tx) => {
       const txDate = new Date(tx.date);
-
-      if (selectedDate) {
-        return tx.date === selectedDate;
-      }
-
+      if (selectedDate) return tx.date === selectedDate;
       if (selectedMonth !== "all" && selectedYear !== "all") {
-        const year = parseInt(selectedYear);
-        const month = parseInt(selectedMonth) - 1; // JS months are 0-based
-        return txDate.getFullYear() === year && txDate.getMonth() === month;
+        return (
+          txDate.getFullYear() === parseInt(selectedYear) &&
+          txDate.getMonth() + 1 === parseInt(selectedMonth)
+        );
       }
-
-      if (selectedYear !== "all") {
+      if (selectedYear !== "all")
         return txDate.getFullYear() === parseInt(selectedYear);
-      }
-
       return true;
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -58,12 +58,9 @@ export default function Transactions() {
     .reduce((sum, t) => sum + t.amount, 0);
   const balance = totalIncome - totalExpense;
 
-  // Group transactions by date
   const groupedTx = filteredTx.reduce(
     (groups, tx) => {
-      if (!groups[tx.date]) {
-        groups[tx.date] = [];
-      }
+      if (!groups[tx.date]) groups[tx.date] = [];
       groups[tx.date].push(tx);
       return groups;
     },
@@ -71,219 +68,318 @@ export default function Transactions() {
   );
 
   return (
-    <div className="p-4 max-w-md mx-auto pb-24">
-      <h1 className="text-3xl font-bold mb-6">সব খাতা</h1>
-
-      {/* Filter Controls */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div>
-          <Label htmlFor="year-select">বছর</Label>
-          <select
-            id="year-select"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="w-full p-3 border rounded-lg bg-background"
-          >
-            <option value="all">সব বছর</option>
-            {availableYears.slice(1).map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <Label htmlFor="month-select">মাস</Label>
-          <select
-            id="month-select"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full p-3 border rounded-lg bg-background"
-          >
-            <option value="all">সব মাস</option>
-            {[
-              "জানুয়ারি",
-              "ফেব্রুয়ারি",
-              "মার্চ",
-              "এপ্রিল",
-              "মে",
-              "জুন",
-              "জুলাই",
-              "আগস্ট",
-              "সেপ্টেম্বর",
-              "অক্টোবর",
-              "নভেম্বর",
-              "ডিসেম্বর",
-            ].map((month, index) => (
-              <option
-                key={index + 1}
-                value={String(index + 1).padStart(2, "0")}
-              >
-                {month}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <Label htmlFor="date-input">তারিখ</Label>
-          <Input
-            id="date-input"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full"
-          />
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <TrendingUp className="text-emerald-600 mx-auto mb-2" size={24} />
-            <p className="text-sm text-muted-foreground">আয়</p>
-            <p className="text-lg font-semibold text-emerald-600">
-              ৳ {totalIncome.toLocaleString("bn-BD")}
+    <div className="min-h-screen bg-[#fcfdfe] transition-colors duration-300">
+      <div className="max-w-6xl mx-auto p-4 md:p-12 pb-32">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+          <div className="space-y-2 text-center md:text-left">
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
+              সব <span className="text-emerald-600">লেনদেন</span>
+            </h1>
+            <p className="text-slate-500 font-semibold flex items-center justify-center md:justify-start gap-2 italic">
+              <Filter size={18} className="text-emerald-500" />
+              আপনার জমানো সব হিসাবের তালিকা
             </p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardContent className="p-4 text-center">
-            <TrendingDown className="text-red-600 mx-auto mb-2" size={24} />
-            <p className="text-sm text-muted-foreground">ব্যয়</p>
-            <p className="text-lg font-semibold text-red-600">
-              ৳ {totalExpense.toLocaleString("bn-BD")}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4 text-center">
-            <DollarSign
-              className={`mx-auto mb-2 ${balance >= 0 ? "text-emerald-600" : "text-red-600"}`}
-              size={24}
-            />
-            <p className="text-sm text-muted-foreground">ব্যালেন্স</p>
-            <p
-              className={`text-lg font-semibold ${balance >= 0 ? "text-emerald-600" : "text-red-600"}`}
+          {/* Clear Filter Button */}
+          {(selectedYear !== "all" ||
+            selectedMonth !== "all" ||
+            selectedDate) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedYear("all");
+                setSelectedMonth("all");
+                setSelectedDate("");
+              }}
+              className="rounded-full px-6 border-rose-200 text-rose-500 font-bold bg-rose-50/50 hover:bg-rose-50"
             >
-              ৳ {balance.toLocaleString("bn-BD")}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+              ফিল্টার রিসেট <X size={14} className="ml-2" />
+            </Button>
+          )}
+        </div>
 
-      <div className="space-y-6">
-        {Object.keys(groupedTx).length === 0 ? (
-          <p className="text-center py-12 text-muted-foreground">
-            কোনো এন্ট্রি নেই
-          </p>
-        ) : (
-          Object.entries(groupedTx)
-            .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
-            .map(([date, txs]) => {
-              const dailyIncome = txs
-                .filter((t) => t.type === "income")
-                .reduce((sum, t) => sum + t.amount, 0);
-              const dailyExpense = txs
-                .filter((t) => t.type === "expense")
-                .reduce((sum, t) => sum + t.amount, 0);
-              const dailyBalance = dailyIncome - dailyExpense;
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          {/* Left Column: Filters & Summary */}
+          <aside className="lg:col-span-4 space-y-8 lg:sticky lg:top-8">
+            {/* Filter Card */}
+            <div className="bg-white border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 rounded-[2.5rem] space-y-6">
+              <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
+                <Calendar size={20} className="text-emerald-600" />
+                ফিল্টার করুন
+              </h3>
 
-              return (
-                <div key={date} className="space-y-3">
-                  {/* Date Header */}
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <h3 className="font-semibold text-lg">
-                      {new Date(date).toLocaleDateString("bn-BD", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </h3>
-                    <div className="flex gap-4 text-sm">
-                      <span className="text-emerald-600">
-                        আয়: ৳{dailyIncome.toLocaleString("bn-BD")}
-                      </span>
-                      <span className="text-red-600">
-                        ব্যয়: ৳{dailyExpense.toLocaleString("bn-BD")}
-                      </span>
-                      <span
-                        className={
-                          dailyBalance >= 0
-                            ? "text-emerald-600"
-                            : "text-red-600"
-                        }
-                      >
-                        ব্যালেন্স: ৳{dailyBalance.toLocaleString("bn-BD")}
-                      </span>
-                    </div>
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400 ml-1">
+                      বছর
+                    </label>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(e.target.value)}
+                      className="w-full p-4 rounded-2xl bg-slate-50 border-none text-sm font-bold focus:ring-2 ring-emerald-500/20 cursor-pointer appearance-none"
+                    >
+                      <option value="all">সব বছর</option>
+                      {availableYears.slice(1).map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  {/* Transactions for this date */}
-                  {txs.map((tx) => (
-                    <Card
-                      key={tx.id}
-                      className="p-4 flex justify-between items-center"
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400 ml-1">
+                      মাস
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="w-full p-4 rounded-2xl bg-slate-50 border-none text-sm font-bold focus:ring-2 ring-emerald-500/20 cursor-pointer appearance-none"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`text-xl ${tx.type === "income" ? "text-emerald-600" : "text-red-600"}`}
-                          >
-                            {tx.type === "income" ? "↑" : "↓"}
-                          </span>
+                      <option value="all">সব মাস</option>
+                      {[
+                        "জানুয়ারি",
+                        "ফেব্রুয়ারি",
+                        "মার্চ",
+                        "এপ্রিল",
+                        "মে",
+                        "জুন",
+                        "জুলাই",
+                        "আগস্ট",
+                        "সেপ্টেম্বর",
+                        "অক্টোবর",
+                        "নভেম্বর",
+                        "ডিসেম্বর",
+                      ].map((m, i) => (
+                        <option key={i} value={String(i + 1).padStart(2, "0")}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400 ml-1">
+                    নির্দিষ্ট তারিখ
+                  </label>
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="rounded-2xl bg-slate-50 border-none h-14 font-bold px-4"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Summary List Card */}
+            <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white space-y-6 shadow-xl shadow-slate-200">
+              <div className="flex justify-between items-center opacity-60">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                  ফিল্টার সামারি
+                </span>
+                <Wallet size={18} />
+              </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold text-slate-400">
+                    মোট আয়
+                  </span>
+                  <span className="text-emerald-400 font-bold text-lg">
+                    ৳{totalIncome.toLocaleString("bn-BD")}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-y border-white/5 py-4">
+                  <span className="text-sm font-bold text-slate-400">
+                    মোট ব্যয়
+                  </span>
+                  <span className="text-rose-400 font-bold text-lg">
+                    ৳{totalExpense.toLocaleString("bn-BD")}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-sm font-bold text-slate-400">
+                    নেট ব্যালেন্স
+                  </span>
+                  <span
+                    className={`font-bold text-2xl ${balance >= 0 ? "text-emerald-400" : "text-rose-400"}`}
+                  >
+                    ৳{balance.toLocaleString("bn-BD")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Right Column: Transactions List */}
+          <div className="lg:col-span-8 space-y-10">
+            {Object.keys(groupedTx).length === 0 ? (
+              <div className="bg-white border-2 border-dashed border-slate-100 rounded-[3rem] p-24 text-center">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <AlertCircle className="text-slate-200" size={40} />
+                </div>
+                <p className="text-slate-900 font-bold text-xl">
+                  কোনো লেনদেন পাওয়া যায়নি
+                </p>
+                <p className="text-sm text-slate-400 font-semibold mt-2 px-6">
+                  আপনার নির্বাচিত ফিল্টার অনুযায়ী কোনো ডেটা নেই। অন্য তারিখ
+                  ট্রাই করুন।
+                </p>
+              </div>
+            ) : (
+              Object.entries(groupedTx)
+                .sort(
+                  ([a], [b]) => new Date(b).getTime() - new Date(a).getTime(),
+                )
+                .map(([date, txs]) => {
+                  const dailyIncome = txs
+                    .filter((t) => t.type === "income")
+                    .reduce((sum, t) => sum + t.amount, 0);
+                  const dailyExpense = txs
+                    .filter((t) => t.type === "expense")
+                    .reduce((sum, t) => sum + t.amount, 0);
+
+                  return (
+                    <div key={date} className="space-y-5">
+                      {/* Date Header Sticky */}
+                      <div className="sticky top-6 z-10 flex justify-between items-center bg-white/90 backdrop-blur-xl px-6 py-4 rounded-[1.5rem] border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex flex-col items-center justify-center text-white leading-none shadow-lg shadow-emerald-100">
+                            <span className="text-[10px] font-bold uppercase mb-1">
+                              {new Date(date).toLocaleDateString("bn-BD", {
+                                month: "short",
+                              })}
+                            </span>
+                            <span className="text-xl font-bold">
+                              {new Date(date).toLocaleDateString("bn-BD", {
+                                day: "2-digit",
+                              })}
+                            </span>
+                          </div>
                           <div>
-                            <p className="font-medium">{tx.category}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {tx.notes || "কোনো নোট নেই"}
+                            <h3 className="font-bold text-slate-900 text-lg leading-tight">
+                              {new Date(date).toLocaleDateString("bn-BD", {
+                                weekday: "long",
+                              })}
+                            </h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                              {new Date(date).getFullYear()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-8 items-center pr-2">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-[9px] font-bold text-emerald-600 uppercase mb-0.5 tracking-tighter">
+                              মোট আয়
+                            </p>
+                            <p className="text-sm font-bold text-slate-900">
+                              ৳{dailyIncome.toLocaleString("bn-BD")}
+                            </p>
+                          </div>
+                          <div className="text-right hidden sm:block border-l border-slate-100 pl-8">
+                            <p className="text-[9px] font-bold text-rose-600 uppercase mb-0.5 tracking-tighter">
+                              মোট ব্যয়
+                            </p>
+                            <p className="text-sm font-bold text-slate-900">
+                              ৳{dailyExpense.toLocaleString("bn-BD")}
                             </p>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <p
-                          className={`font-bold text-xl ${tx.type === "income" ? "text-emerald-600" : "text-red-600"}`}
-                        >
-                          {tx.type === "income" ? "+" : "-"}৳
-                          {tx.amount.toLocaleString("bn-BD")}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteTxId(tx.id)}
-                          className="text-red-500 hover:text-red-600"
-                        >
-                          <Trash2 size={18} />
-                        </Button>
+
+                      {/* Transactions List */}
+                      <div className="grid gap-4 pl-2">
+                        {txs.map((tx) => (
+                          <div
+                            key={tx.id}
+                            className="group bg-white border border-transparent hover:border-emerald-100 p-5 rounded-[2rem] flex items-center justify-between hover:shadow-[0_10px_40px_rgb(0,0,0,0.03)] transition-all"
+                          >
+                            <div className="flex items-center gap-5">
+                              <div
+                                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
+                                  tx.type === "income"
+                                    ? "bg-emerald-50 text-emerald-600 shadow-inner"
+                                    : "bg-rose-50 text-rose-600 shadow-inner"
+                                }`}
+                              >
+                                {tx.type === "income" ? (
+                                  <TrendingUp size={22} />
+                                ) : (
+                                  <TrendingDown size={22} />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-900 text-lg leading-tight mb-1">
+                                  {tx.category}
+                                </p>
+                                <p className="text-xs font-bold text-slate-400 italic">
+                                  {tx.notes
+                                    ? `"${tx.notes}"`
+                                    : "কোনো নোট যোগ করা নেই"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-6">
+                              <div className="text-right">
+                                <p
+                                  className={`text-xl font-bold ${tx.type === "income" ? "text-emerald-600" : "text-rose-600"}`}
+                                >
+                                  {tx.type === "income" ? "+" : "-"} ৳
+                                  {tx.amount.toLocaleString("bn-BD")}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => setDeleteTxId(tx.id)}
+                                className="md:opacity-0 group-hover:opacity-100 p-3 text-slate-200 hover:text-rose-500 transition-all rounded-xl hover:bg-rose-50"
+                              >
+                                <Trash2 size={20} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </Card>
-                  ))}
-                </div>
-              );
-            })
-        )}
+                    </div>
+                  );
+                })
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteTxId} onOpenChange={() => setDeleteTxId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>ডিলিট কনফার্মেশন</DialogTitle>
-          </DialogHeader>
-          <p>
-            আপনি কি এই ট্রানজেকশন ডিলিট করতে চান? এই অ্যাকশন আনডু করা যাবে না।
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTxId(null)}>
-              ক্যানসেল
+        <DialogContent className="rounded-[3rem] max-w-sm border-none p-10 bg-white">
+          <div className="flex flex-col items-center text-center space-y-5">
+            <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 shadow-inner">
+              <Trash2 size={36} />
+            </div>
+            <DialogHeader>
+              <DialogTitle className="text-3xl font-bold tracking-tight text-slate-900">
+                মুছে ফেলবেন?
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-slate-500 text-sm font-semibold leading-relaxed">
+              লেনদেনটি মুছে ফেললে আপনার বর্তমান ব্যালেন্স থেকেও এটি স্থায়ীভাবে
+              বাদ যাবে।
+            </p>
+          </div>
+          <DialogFooter className="flex-row gap-4 mt-10">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-2xl h-14 font-bold border-slate-100 hover:bg-slate-50"
+              onClick={() => setDeleteTxId(null)}
+            >
+              না
             </Button>
             <Button
               variant="destructive"
+              className="flex-1 rounded-2xl h-14 font-bold shadow-lg shadow-rose-100 transition-all"
               onClick={() => {
                 if (deleteTxId) {
                   deleteTransaction(deleteTxId);
@@ -291,7 +387,7 @@ export default function Transactions() {
                 }
               }}
             >
-              ডিলিট
+              হ্যাঁ, মুছুন
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -13,7 +13,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-background pb-20"> {/* pb for bottom nav */}
+      <div className="min-h-screen md:max-w-[80%] bg-[#f8fafc] md:ml-55  pb-20"> {/* pb for bottom nav */}
         <Routes>
           <Route path="/" element={<Home onAddClick={() => setModalOpen(true)} />} />
           <Route path="/transactions" element={<Transactions />} />
