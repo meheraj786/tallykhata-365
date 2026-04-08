@@ -28,9 +28,6 @@ const bulkSchema = z.object({
   transactions: z.array(singleSchema).min(1),
 });
 
-// type FormData = z.infer<typeof singleSchema>;
-// type BulkFormData = z.infer<typeof bulkSchema>;
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,20 +40,19 @@ export default function AddTransactionModal({
   editingTransaction = null,
 }: Props) {
   const [mode, setMode] = useState<"single" | "bulk">("single");
-  const [type, setType] = useState<"income" | "expense">("expense");
   const { addTransaction, updateTransaction } = useKhataStore();
 
   const { register, handleSubmit, setValue, reset, control, watch } =
     useForm<any>({
       resolver: zodResolver(mode === "single" ? singleSchema : bulkSchema),
       defaultValues: {
-        type: "expense",
+        type: "income", 
         date: new Date().toISOString().split("T")[0],
         transactions: [
           {
-            type: "expense",
-            amount: 0,
-            category: popularCategories["expense"][0],
+            type: "income", 
+            amount: null,
+            category: popularCategories["income"][0],
             date: new Date().toISOString().split("T")[0],
             notes: "",
           },
@@ -69,11 +65,12 @@ export default function AddTransactionModal({
     name: "transactions",
   });
 
+  const currentType = watch("type");
+
   useEffect(() => {
     if (open) {
       if (editingTransaction) {
         setMode("single");
-        setType(editingTransaction.type);
         reset({
           type: editingTransaction.type,
           amount: editingTransaction.amount,
@@ -83,18 +80,17 @@ export default function AddTransactionModal({
         });
       } else {
         setMode("single");
-        setType("expense");
         reset({
-          type: "expense",
-          amount: 0,
-          category: popularCategories["expense"][0],
+          type: "income", 
+          amount: null,
+          category: popularCategories["income"][0],
           date: new Date().toISOString().split("T")[0],
           notes: "",
           transactions: [
             {
-              type: "expense",
-              amount: 0,
-              category: popularCategories["expense"][0],
+              type: "income",
+              amount: null,
+              category: popularCategories["income"][0],
               date: new Date().toISOString().split("T")[0],
               notes: "",
             },
@@ -117,7 +113,6 @@ export default function AddTransactionModal({
     reset();
     onOpenChange(false);
   };
-  const currentType = watch("type");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,12 +128,14 @@ export default function AddTransactionModal({
           {!editingTransaction && (
             <div className="flex bg-slate-100 p-1 rounded-xl">
               <button
+                type="button"
                 onClick={() => setMode("single")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${mode === "single" ? "bg-white shadow-sm text-emerald-600" : "text-slate-400"}`}
               >
                 <User size={14} className="inline mr-1" /> Single
               </button>
               <button
+                type="button"
                 onClick={() => setMode("bulk")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${mode === "bulk" ? "bg-white shadow-sm text-emerald-600" : "text-slate-400"}`}
               >
@@ -150,25 +147,23 @@ export default function AddTransactionModal({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full">
           {mode === "single" ? (
-            // SINGLE MODE UI
             <div className="space-y-6">
               <Tabs
                 value={currentType}
                 onValueChange={(v) => setValue("type", v)}
-                
               >
                 <TabsList className="grid w-full grid-cols-2 p-1.5 bg-slate-100 rounded-2xl h-14">
-                  <TabsTrigger
-                    value="expense"
-                    className="rounded-xl font-black transition-all data-[state=active]:text-rose-600"
-                  >
-                    ব্যয়
-                  </TabsTrigger>
                   <TabsTrigger
                     value="income"
                     className="rounded-xl font-black transition-all data-[state=active]:text-emerald-600"
                   >
                     আয়
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="expense"
+                    className="rounded-xl font-black transition-all data-[state=active]:text-rose-600"
+                  >
+                    ব্যয়
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -184,6 +179,7 @@ export default function AddTransactionModal({
                   <Input
                     type="number"
                     {...register("amount", { valueAsNumber: true })}
+                    placeholder="৳০০০"
                     className="text-4xl h-20 pl-12 text-center font-black rounded-[2rem] bg-slate-50 border-none"
                   />
                 </div>
@@ -198,7 +194,7 @@ export default function AddTransactionModal({
                     {...register("category")}
                     className="w-full h-14 px-4 font-black rounded-2xl bg-slate-50 border-none"
                   >
-                    {popularCategories[type].map((cat) => (
+                    {(popularCategories as any)[currentType]?.map((cat: string) => (
                       <option key={cat} value={cat}>
                         {cat}
                       </option>
@@ -230,81 +226,79 @@ export default function AddTransactionModal({
               </div>
             </div>
           ) : (
-            // BULK MODE UI
             <div className="space-y-4">
-              {fields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative group"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <Input
-                      type="number"
-                      placeholder="৳ ০.০০"
-                      {...register(`transactions.${index}.amount`, {
-                        valueAsNumber: true,
-                      })}
-                      className="h-12 font-black rounded-xl border-none bg-white shadow-sm"
-                    />
-                    <select
-                      {...register(`transactions.${index}.category`)}
-                      className="h-12 px-3 font-bold rounded-xl border-none bg-white shadow-sm text-sm"
-                    >
-                      {popularCategories["expense"].map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                      {popularCategories["income"].map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                    <Input
-                      placeholder="নোট..."
-                      maxLength={20}
-                      {...register(`transactions.${index}.notes`)}
-                      className="h-12 font-semibold rounded-xl border-none bg-white shadow-sm"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-2">
+              {fields.map((field, index) => {
+                const rowType = watch(`transactions.${index}.type`);
+                return (
+                  <div
+                    key={field.id}
+                    className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative group"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <Input
+                        type="number"
+                        placeholder="৳ ০.০০"
+                        {...register(`transactions.${index}.amount`, {
+                          valueAsNumber: true,
+                        })}
+                        className="h-12 font-black rounded-xl border-none bg-white shadow-sm"
+                      />
                       <select
-                        {...register(`transactions.${index}.type`)}
-                        className={`text-[10px] font-black uppercase px-2 py-1 rounded-md border-none ${watch(`transactions.${index}.type`) === "income" ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"}`}
+                        {...register(`transactions.${index}.category`)}
+                        className="h-12 px-3 font-bold rounded-xl border-none bg-white shadow-sm text-sm"
                       >
-                        <option value="expense">ব্যয়</option>
-                        <option value="income">আয়</option>
+                        {(popularCategories as any)[rowType]?.map((cat: string) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
                       </select>
                       <Input
-                        type="date"
-                        {...register(`transactions.${index}.date`)}
-                        className="h-8 text-[10px] font-bold border-none bg-transparent w-32"
+                        placeholder="নোট..."
+                        maxLength={20}
+                        {...register(`transactions.${index}.notes`)}
+                        className="h-12 font-semibold rounded-xl border-none bg-white shadow-sm"
                       />
                     </div>
 
-                    {fields.length > 1 && (
-                      <button
-                        onClick={() => remove(index)}
-                        className="text-rose-400 hover:text-rose-600 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2">
+                        <select
+                          {...register(`transactions.${index}.type`)}
+                          className={`text-[10px] font-black uppercase px-2 py-1 rounded-md border-none ${watch(`transactions.${index}.type`) === "income" ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"}`}
+                        >
+                          <option value="income">আয়</option>
+                          <option value="expense">ব্যয়</option>
+                        </select>
+                        <Input
+                          type="date"
+                          {...register(`transactions.${index}.date`)}
+                          className="h-8 text-[10px] font-bold border-none bg-transparent w-32"
+                        />
+                      </div>
+
+                      {fields.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => remove(index)}
+                          className="text-rose-400 hover:text-rose-600 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <Button
                 type="button"
                 variant="outline"
                 onClick={() =>
                   append({
-                    type: "expense",
-                    amount: 0,
-                    category: popularCategories["expense"][0],
+                    type: "income",
+                    amount: null,
+                    category: popularCategories["income"][0],
                     date: new Date().toISOString().split("T")[0],
                     notes: "",
                   })
