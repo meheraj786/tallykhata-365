@@ -12,14 +12,13 @@ import {
   CheckCircle, 
   AlertCircle, 
   LogOut,
-  Camera,
   Key
 } from "lucide-react";
 import { signOut } from "firebase/auth";
 
 export default function Profile() {
   const user = auth.currentUser;
-  const { transactions, getBalance } = useKhataStore();
+  const { transactions } = useKhataStore();
   
   const [name, setName] = useState(user?.displayName || "");
   const [isEditing, setIsEditing] = useState(false);
@@ -27,7 +26,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
 
   const totalTransactions = transactions.length;
-  const balance = getBalance();
+  // const balance = getBalance();
 
   const handleUpdateName = async () => {
     if (!user) return;

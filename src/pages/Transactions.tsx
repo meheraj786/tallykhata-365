@@ -37,6 +37,7 @@ export default function Transactions() {
     amount: 0,
     category: "",
     notes: "",
+    createdAt: 0,
   });
 
   const availableYears = [
@@ -78,6 +79,7 @@ export default function Transactions() {
       amount: tx.amount,
       category: tx.category,
       notes: tx.notes || "",
+      createdAt: tx.createdAt,
     });
   };
 
@@ -89,6 +91,7 @@ export default function Transactions() {
         amount: editData.amount,
         category: editData.category,
         notes: editData.notes,
+        createdAt: editData?.createdAt || Date.now(),
       });
       setEditingTx(null);
     }
