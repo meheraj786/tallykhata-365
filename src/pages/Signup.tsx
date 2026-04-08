@@ -13,16 +13,41 @@ export default function Signup() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: name });
-      navigate("/");
-    } catch (err: any) {
+const handleSignup = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError(""); 
+
+  if (name.trim().length < 3) {
+    setError("নাম কমপক্ষে ৩ অক্ষরের হতে হবে।");
+    return;
+  }
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email)) {
+    setError("অনুগ্রহ করে একটি সঠিক ইমেইল অ্যাড্রেস প্রদান করুন (উদাঃ example@mail.com)।");
+    return;
+  }
+
+  if (password.length < 6) {
+    setError("নিরাপত্তার জন্য পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।");
+    return;
+  }
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName: name });
+    navigate("/");
+  } catch (err: any) {
+    if (err.code === "auth/email-already-in-use") {
+      setError("এই ইমেইলটি দিয়ে ইতিমধ্যে অ্যাকাউন্ট খোলা হয়েছে।");
+    } else if (err.code === "auth/weak-password") {
+      setError("পাসওয়ার্ডটি অনেক দুর্বল, আরও কঠিন পাসওয়ার্ড দিন।");
+    } else {
       setError("অ্যাকাউন্ট তৈরি করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
     }
-  };
+    console.error(err);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4">

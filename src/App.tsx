@@ -14,6 +14,7 @@ import Reports from "./pages/Reports";
 import More from "./pages/More";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Profile from "./pages/Profile";
 
 function App() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,46 +31,68 @@ function App() {
     if (user) {
       const q = query(
         collection(db, "users", user.uid, "transactions"),
-        orderBy("date", "desc")
+        orderBy("createdAt", "desc"), 
       );
 
-      unsubscribe = onSnapshot(q, (snapshot) => {
-        const txList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as any[];
-        
-        setTransactions(txList);
-      }, (error) => {
-        console.error("Firestore sync error:", error);
-      });
+      unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const txList = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as any[];
+
+          setTransactions(txList);
+        },
+        (error) => {
+          console.error("Firestore sync error:", error);
+        },
+      );
     } else {
       setTransactions([]);
     }
 
-    return () => unsubscribe(); 
+    return () => unsubscribe();
   }, [user, setTransactions]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
         <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-bold text-slate-500 italic">আমার খাতা লোড হচ্ছে...</p>
+        <p className="font-bold text-slate-500 italic">
+          আমার খাতা লোড হচ্ছে...
+        </p>
       </div>
     );
   }
 
   return (
     <Router>
-      <div className={user ? "min-h-screen md:max-w-[80%] bg-[#f8fafc] pb-20 md:ml-55" : "min-h-screen w-full bg-[#f8fafc]"}>
+      <div
+        className={
+          user
+            ? "min-h-screen md:max-w-[80%] bg-[#f8fafc] pb-20 md:ml-55"
+            : "min-h-screen w-full bg-[#f8fafc]"
+        }
+      >
         <Routes>
           <Route
             path="/"
-            element={user ? <Home onAddClick={() => setModalOpen(true)} /> : <Navigate to="/login" />}
+            element={
+              user ? (
+                <Home onAddClick={() => setModalOpen(true)} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
           />
           <Route
             path="/transactions"
             element={user ? <Transactions /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/profile"
+            element={user ? <Profile /> : <Navigate to="/login" />}
           />
           <Route
             path="/reports"

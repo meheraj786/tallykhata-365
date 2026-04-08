@@ -4,12 +4,11 @@ import InstallPWA from "@/components/InstallPWA";
 import {
   Info,
   Smartphone,
-  ShieldCheck,
-  Database,
   RefreshCcw,
   ExternalLink,
   Heart,
   LogOut,
+  Cloud,
 } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -70,28 +69,29 @@ export default function More() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4">
-                <div className="group flex gap-4 p-6 bg-slate-50 hover:bg-blue-50/50 transition-colors rounded-[2rem] border border-slate-100/50">
-                  <ShieldCheck
-                    size={24}
-                    className="text-blue-500 shrink-0 group-hover:scale-110 transition-transform"
-                  />
-                  <p className="text-sm font-medium text-slate-600 leading-relaxed">
-                    আপনার সব ডেটা আপনার <strong>ব্রাউজারে</strong> সুরক্ষিতভাবে
-                    সেভ থাকে।
-                  </p>
-                </div>
-                <div className="group flex gap-4 p-6 bg-slate-50 hover:bg-emerald-50/50 transition-colors rounded-[2rem] border border-slate-100/50">
-                  <Database
-                    size={24}
-                    className="text-emerald-500 shrink-0 group-hover:scale-110 transition-transform"
-                  />
-                  <p className="text-sm font-medium text-slate-600 leading-relaxed">
-                    ইন্টারনেট কানেকশন ছাড়াও <strong>অফলাইনে</strong> নিশ্চিন্তে
-                    ব্যবহার করুন।
-                  </p>
-                </div>
-              </div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4">
+  {/* Cloud Sync Information */}
+  <div className="group flex gap-4 p-6 bg-slate-50 hover:bg-blue-50/50 transition-colors rounded-[2rem] border border-slate-100/50">
+    <Cloud
+      size={24}
+      className="text-blue-500 shrink-0 group-hover:scale-110 transition-transform"
+    />
+    <p className="text-sm font-medium text-slate-600 leading-relaxed">
+      আপনার সব ডেটা আপনার <strong>অ্যাকাউন্টের</strong> সাথে ক্লাউডে সুরক্ষিতভাবে সিঙ্ক থাকে।
+    </p>
+  </div>
+
+  {/* Offline Persistence Information */}
+  <div className="group flex gap-4 p-6 bg-slate-50 hover:bg-emerald-50/50 transition-colors rounded-[2rem] border border-slate-100/50">
+    <RefreshCcw
+      size={24}
+      className="text-emerald-500 shrink-0 group-hover:scale-110 transition-transform"
+    />
+    <p className="text-sm font-medium text-slate-600 leading-relaxed">
+      <strong>অফলাইনেও</strong> নিশ্চিন্তে ব্যবহার করুন, অনলাইন হওয়া মাত্রই ডেটা স্বয়ংক্রিয়ভাবে সিঙ্ক হবে।
+    </p>
+  </div>
+</div>
             </CardContent>
           </Card>
 

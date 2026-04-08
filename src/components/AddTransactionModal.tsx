@@ -70,30 +70,37 @@ export default function AddTransactionModal({
   });
 
   useEffect(() => {
-    if (editingTransaction) {
-      setMode("single");
-      setType(editingTransaction.type);
-      reset({
-        type: editingTransaction.type,
-        amount: editingTransaction.amount,
-        category: editingTransaction.category,
-        notes: editingTransaction.notes,
-        date: editingTransaction.date,
-      });
-    } else {
-      reset({
-        type: "expense",
-        date: new Date().toISOString().split("T")[0],
-        transactions: [
-          {
-            type: "expense",
-            amount: 0,
-            category: popularCategories["expense"][0],
-            date: new Date().toISOString().split("T")[0],
-            notes: "",
-          },
-        ],
-      });
+    if (open) {
+      if (editingTransaction) {
+        setMode("single");
+        setType(editingTransaction.type);
+        reset({
+          type: editingTransaction.type,
+          amount: editingTransaction.amount,
+          category: editingTransaction.category,
+          notes: editingTransaction.notes,
+          date: editingTransaction.date,
+        });
+      } else {
+        setMode("single");
+        setType("expense");
+        reset({
+          type: "expense",
+          amount: 0,
+          category: popularCategories["expense"][0],
+          date: new Date().toISOString().split("T")[0],
+          notes: "",
+          transactions: [
+            {
+              type: "expense",
+              amount: 0,
+              category: popularCategories["expense"][0],
+              date: new Date().toISOString().split("T")[0],
+              notes: "",
+            },
+          ],
+        });
+      }
     }
   }, [editingTransaction, open, reset]);
 
@@ -110,6 +117,7 @@ export default function AddTransactionModal({
     reset();
     onOpenChange(false);
   };
+  const currentType = watch("type");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,12 +153,9 @@ export default function AddTransactionModal({
             // SINGLE MODE UI
             <div className="space-y-6">
               <Tabs
-                value={type}
-                onValueChange={(v) => {
-                  setType(v as any);
-                  setValue("type", v);
-                }}
-                className="w-full"
+                value={currentType}
+                onValueChange={(v) => setValue("type", v)}
+                
               >
                 <TabsList className="grid w-full grid-cols-2 p-1.5 bg-slate-100 rounded-2xl h-14">
                   <TabsTrigger

@@ -26,12 +26,15 @@ export const useKhataStore = create<KhataStore>((set, get) => ({
 
   setTransactions: (txs) => set({ transactions: txs }),
 
-  addTransaction: async (tx) => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) return;
-    
-    await addDoc(collection(db, 'users', userId, 'transactions'), tx);
-  },
+addTransaction: async (tx) => {
+  const userId = auth.currentUser?.uid;
+  if (!userId) return;
+  
+  await addDoc(collection(db, 'users', userId, 'transactions'), {
+    ...tx,
+    createdAt: Date.now(),
+  });
+},
 
   updateTransaction: async (id, tx) => {
     const userId = auth.currentUser?.uid;

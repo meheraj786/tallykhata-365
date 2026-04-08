@@ -1,24 +1,50 @@
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogIn, Mail, Lock } from "lucide-react";
+import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState(""); 
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setMessage("");
+    setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/");
     } catch (err: any) {
       setError("ইমেইল বা পাসওয়ার্ড ভুল হয়েছে।");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("অনুগ্রহ করে আপনার ইমেইলটি আগে লিখুন।");
+      return;
+    }
+    setError("");
+    setMessage("");
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMessage("পাসওয়ার্ড রিসেট লিঙ্ক আপনার ইমেইলে পাঠানো হয়েছে। স্প্যাম ফোল্ডারটিও চেক করুন।");
+    } catch (err: any) {
+      if (err.code === "auth/user-not-found") {
+        setError("এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি।");
+      } else {
+        setError("পাসওয়ার্ড রিসেট লিঙ্ক পাঠাতে সমস্যা হয়েছে।");
+      }
     }
   };
 
@@ -33,6 +59,7 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
+          {/* Email Input */}
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input
@@ -53,14 +80,34 @@ export default function Login() {
               className="pl-12 h-14 rounded-2xl bg-slate-50 border-none font-semibold"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              required={!loading} 
             />
           </div>
 
-          {error && <p className="text-rose-500 text-sm font-bold text-center">{error}</p>}
+          {/* Forgot Password Link */}
+          <div className="flex justify-end px-1">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors"
+            >
+              পাসওয়ার্ড ভুলে গেছেন?
+            </button>
+          </div>
 
-          <Button className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-bold text-lg shadow-lg shadow-emerald-100">
-            <LogIn className="mr-2" size={20} /> লগইন করুন
+          {error && <p className="text-rose-500 text-xs font-bold text-center bg-rose-50 p-3 rounded-xl">{error}</p>}
+          {message && <p className="text-emerald-600 text-xs font-bold text-center bg-emerald-50 p-3 rounded-xl">{message}</p>}
+
+          <Button 
+            disabled={loading}
+            className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-bold text-lg shadow-lg shadow-emerald-100 transition-all active:scale-95"
+          >
+            {loading ? (
+              <Loader2 className="mr-2 animate-spin" size={20} />
+            ) : (
+              <LogIn className="mr-2" size={20} />
+            )}
+            {loading ? "লোডিং..." : "লগইন করুন"}
           </Button>
         </form>
 
