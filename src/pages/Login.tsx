@@ -1,18 +1,22 @@
 import { useState } from "react";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
+import { LogIn, Mail, Lock, Loader2, EyeOff, Eye } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState(""); 
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +42,9 @@ export default function Login() {
     setMessage("");
     try {
       await sendPasswordResetEmail(auth, email);
-      setMessage("পাসওয়ার্ড রিসেট লিঙ্ক আপনার ইমেইলে পাঠানো হয়েছে। স্প্যাম ফোল্ডারটিও চেক করুন।");
+      setMessage(
+        "পাসওয়ার্ড রিসেট লিঙ্ক আপনার ইমেইলে পাঠানো হয়েছে। স্প্যাম ফোল্ডারটিও চেক করুন।",
+      );
     } catch (err: any) {
       if (err.code === "auth/user-not-found") {
         setError("এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি।");
@@ -55,13 +61,18 @@ export default function Login() {
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">
             স্বাগতম <span className="text-emerald-600">খাতায়</span>
           </h1>
-          <p className="text-slate-500 font-semibold mt-2">আপনার হিসেবে প্রবেশ করুন</p>
+          <p className="text-slate-500 font-semibold mt-2">
+            আপনার হিসেবে প্রবেশ করুন
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
           {/* Email Input */}
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Mail
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
             <Input
               type="email"
               placeholder="ইমেইল"
@@ -72,16 +83,29 @@ export default function Login() {
             />
           </div>
 
-          <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <div className="relative group">
+            <Lock
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
+
             <Input
-              type="password"
+              type={showPassword ? "text" : "password"} 
               placeholder="পাসওয়ার্ড"
-              className="pl-12 h-14 rounded-2xl bg-slate-50 border-none font-semibold"
+              className="pl-12 pr-12 h-14 rounded-2xl bg-slate-50 border-none font-semibold transition-all focus:ring-2 focus:ring-emerald-500/20"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required={!loading} 
+              required={!loading}
             />
+
+            {/* Eye Icon Button */}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors p-1"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
 
           {/* Forgot Password Link */}
@@ -95,10 +119,18 @@ export default function Login() {
             </button>
           </div>
 
-          {error && <p className="text-rose-500 text-xs font-bold text-center bg-rose-50 p-3 rounded-xl">{error}</p>}
-          {message && <p className="text-emerald-600 text-xs font-bold text-center bg-emerald-50 p-3 rounded-xl">{message}</p>}
+          {error && (
+            <p className="text-rose-500 text-xs font-bold text-center bg-rose-50 p-3 rounded-xl">
+              {error}
+            </p>
+          )}
+          {message && (
+            <p className="text-emerald-600 text-xs font-bold text-center bg-emerald-50 p-3 rounded-xl">
+              {message}
+            </p>
+          )}
 
-          <Button 
+          <Button
             disabled={loading}
             className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-bold text-lg shadow-lg shadow-emerald-100 transition-all active:scale-95"
           >
@@ -114,7 +146,10 @@ export default function Login() {
         <div className="mt-8 text-center">
           <p className="text-slate-500 font-semibold text-sm">
             নতুন ইউজার?{" "}
-            <Link to="/signup" className="text-emerald-600 font-bold hover:underline">
+            <Link
+              to="/signup"
+              className="text-emerald-600 font-bold hover:underline"
+            >
               অ্যাকাউন্ট তৈরি করুন
             </Link>
           </p>
