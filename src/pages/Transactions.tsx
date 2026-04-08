@@ -10,6 +10,7 @@ import {
   Calendar,
   Edit2,
   Tag,
+  MoreVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { useKhataStore } from "../store/useKhataStore";
 import { popularCategories } from "../types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Transactions() {
   const { transactions, deleteTransaction, updateTransaction } =
@@ -336,7 +343,7 @@ export default function Transactions() {
                         {txs.map((tx) => (
                           <div
                             key={tx.id}
-                            className="group bg-white border border-transparent hover:border-emerald-100 p-5 rounded-[2rem] flex items-center justify-between hover:shadow-[0_10px_40px_rgb(0,0,0,0.03)] transition-all"
+                            className="group bg-white  border border-transparent hover:border-emerald-100 p-5 rounded-[2rem] flex items-center justify-between hover:shadow-[0_10px_40px_rgb(0,0,0,0.03)] transition-all"
                           >
                             <div className="flex items-center gap-5">
                               <div
@@ -364,28 +371,61 @@ export default function Transactions() {
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-4 md:gap-6">
+                              {/* টাকার পরিমাণ */}
                               <div className="text-right">
                                 <p
-                                  className={`text-xl font-bold ${tx.type === "income" ? "text-emerald-600" : "text-rose-600"}`}
+                                  className={`text-lg md:text-xl font-bold ${tx.type === "income" ? "text-emerald-600" : "text-rose-600"}`}
                                 >
                                   {tx.type === "income" ? "+" : "-"} ৳
                                   {tx.amount.toLocaleString("bn-BD")}
                                 </p>
                               </div>
-                              <div className="flex gap-2">
+
+                              {/* ডেস্কটপ ভিউ: সরাসরি বাটন (md:flex) */}
+                              <div className="hidden md:flex gap-2">
                                 <button
                                   onClick={() => handleEditClick(tx)}
-                                  className="md:opacity-0 group-hover:opacity-100 p-3 text-slate-200 hover:text-emerald-500 transition-all rounded-xl hover:bg-emerald-50"
+                                  className="p-3 text-slate-200 hover:text-emerald-500 transition-all rounded-xl hover:bg-emerald-50"
                                 >
                                   <Edit2 size={20} />
                                 </button>
                                 <button
                                   onClick={() => setDeleteTxId(tx.id)}
-                                  className="md:opacity-0 group-hover:opacity-100 p-3 text-slate-200 hover:text-rose-500 transition-all rounded-xl hover:bg-rose-50"
+                                  className="p-3 text-slate-200 hover:text-rose-500 transition-all rounded-xl hover:bg-rose-50"
                                 >
                                   <Trash2 size={20} />
                                 </button>
+                              </div>
+
+                              {/* মোবাইল ভিউ: ৩-ডট মেনু (md:hidden) */}
+                              <div className="md:hidden">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-all active:scale-90">
+                                      <MoreVertical size={20} />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent
+                                    align="end"
+                                    className="rounded-2xl border-none shadow-2xl p-2 bg-white min-w-[140px]"
+                                  >
+                                    <DropdownMenuItem
+                                      onClick={() => handleEditClick(tx)}
+                                      className="flex items-center gap-3 font-bold text-slate-600 p-3 rounded-xl focus:bg-emerald-50 focus:text-emerald-600 cursor-pointer"
+                                    >
+                                      <Edit2 size={16} />
+                                      <span>সম্পাদনা</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => setDeleteTxId(tx.id)}
+                                      className="flex items-center gap-3 font-bold text-rose-500 p-3 rounded-xl focus:bg-rose-50 focus:text-rose-600 cursor-pointer"
+                                    >
+                                      <Trash2 size={16} />
+                                      <span>মুছে ফেলুন</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </div>
                           </div>
