@@ -1,63 +1,68 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import { Transaction } from '../types';
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+} from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
 
 interface KhataStore {
   transactions: Transaction[];
-  addTransaction: (tx: Omit<Transaction, 'id'>) => void;
-  updateTransaction: (id: string, tx: Omit<Transaction, 'id'>) => void;
-  deleteTransaction: (id: string) => void;
+  setTransactions: (txs: Transaction[]) => void;
+  addTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void>;
+  updateTransaction: (id: string, tx: Omit<Transaction, 'id'>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   getTotalIncome: () => number;
   getTotalExpense: () => number;
   getBalance: () => number;
   getTodayTransactions: () => Transaction[];
 }
 
-export const useKhataStore = create<KhataStore>()(
-  persist(
-    (set, get) => ({
-      transactions: [],
+export const useKhataStore = create<KhataStore>((set, get) => ({
+  transactions: [],
 
-      addTransaction: (tx) => {
-        const newTx: Transaction = {
-          ...tx,
-          id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-        };
-        set((state) => ({ transactions: [newTx, ...state.transactions] }));
-      },
+  setTransactions: (txs) => set({ transactions: txs }),
 
-      updateTransaction: (id, tx) =>
-        set((state) => ({
-          transactions: state.transactions.map((t) =>
-            t.id === id ? { ...tx, id } : t
-          ),
-        })),
+  addTransaction: async (tx) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+    
+    await addDoc(collection(db, 'users', userId, 'transactions'), tx);
+  },
 
-      deleteTransaction: (id) =>
-        set((state) => ({
-          transactions: state.transactions.filter((t) => t.id !== id),
-        })),
+  updateTransaction: async (id, tx) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
 
-      getTotalIncome: () =>
-        get().transactions
-          .filter((t) => t.type === 'income')
-          .reduce((sum, t) => sum + t.amount, 0),
+    const docRef = doc(db, 'users', userId, 'transactions', id);
+    await updateDoc(docRef, tx);
+  },
 
-      getTotalExpense: () =>
-        get().transactions
-          .filter((t) => t.type === 'expense')
-          .reduce((sum, t) => sum + t.amount, 0),
+  deleteTransaction: async (id) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
 
-      getBalance: () => get().getTotalIncome() - get().getTotalExpense(),
+    const docRef = doc(db, 'users', userId, 'transactions', id);
+    await deleteDoc(docRef);
+  },
 
-      getTodayTransactions: () => {
-        const today = new Date().toISOString().split('T')[0];
-        return get().transactions.filter((t) => t.date === today);
-      },
-    }),
-    {
-      name: 'khata-storage-v1',
-      storage: createJSONStorage(() => localStorage),
-    }
-  )
-);
+  getTotalIncome: () =>
+    get().transactions
+      .filter((t) => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0),
+
+  getTotalExpense: () =>
+    get().transactions
+      .filter((t) => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0),
+
+  getBalance: () => get().getTotalIncome() - get().getTotalExpense(),
+
+  getTodayTransactions: () => {
+    const today = new Date().toISOString().split('T')[0];
+    return get().transactions.filter((t) => t.date === today);
+  },
+}));

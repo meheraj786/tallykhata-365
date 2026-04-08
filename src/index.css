@@ -8,7 +8,7 @@
 :root {
   /* Core UI Colors */
   --background: oklch(1 0 0);
-  --foreground: oklch(0.25 0 0); /* আপনার কাঙ্ক্ষিত টেক্সট কালার এখানে সিঙ্ক করা হয়েছে */
+  --foreground: oklch(0.25 0 0);
   
   --text: var(--foreground);
   --text-h: oklch(0.15 0 0);

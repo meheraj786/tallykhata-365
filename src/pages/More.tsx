@@ -9,7 +9,10 @@ import {
   RefreshCcw,
   ExternalLink,
   Heart,
+  LogOut,
 } from "lucide-react";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export default function More() {
   const handleReset = () => {
@@ -22,12 +25,15 @@ export default function More() {
       window.location.reload();
     }
   };
+  const handleLogout = async () => {
+    if (confirm("আপনি কি লগআউট করতে চান?")) {
+      await signOut(auth);
+    }
+  };
 
   return (
-    // Background light gray for a premium feel
     <div className="min-h-screen w-full bg-[#fcfdfe] transition-colors duration-300">
       <div className="max-w-full mx-auto p-5 md:p-12 pb-32">
-        {/* Header - Center aligned for better visual balance on desktop */}
         <div className="mb-12 text-center md:text-left space-y-2">
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
             আরও <span className="text-emerald-600">অপশন</span>
@@ -89,7 +95,6 @@ export default function More() {
             </CardContent>
           </Card>
 
-          {/* Installation Section with Gradient Border Effect */}
           <div className="p-[2px] bg-gradient-to-r from-emerald-100 via-emerald-600 to-emerald-100 rounded-[2.6rem] shadow-xl shadow-emerald-100/50">
             <div className="bg-white rounded-[2.5rem] p-8">
               <div className="flex items-center justify-between mb-6">
@@ -112,7 +117,6 @@ export default function More() {
             </div>
           </div>
 
-          {/* Danger Zone - More distinct spacing */}
           <div className="pt-10">
             <div className="flex items-center gap-3 mb-5 ml-4">
               <span className="text-[11px] font-bold text-rose-500 uppercase tracking-[0.3em]">
@@ -141,6 +145,13 @@ export default function More() {
                 </Button>
               </CardContent>
             </Card>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="w-full h-14 rounded-2xl border-rose-100 text-rose-500 font-bold mt-4"
+            >
+              <LogOut size={20} className="mr-2" /> লগআউট করুন
+            </Button>
           </div>
 
           {/* New Modern Footer */}
