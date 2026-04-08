@@ -31,7 +31,37 @@ export default function Reports() {
   const expense = getTotalExpense();
   const balance = income - expense;
 
-  // Data functions remain same (logic unchanged)
+  const COLORS = [
+    "#10b981",
+    "#f43f5e",
+    "#f59e0b",
+    "#6366f1",
+    "#06b6d4",
+    "#d946ef",
+    "#8b5cf6",
+    "#f97316",
+  ];
+
+  const getFilteredTransactions = () => {
+    const today = new Date();
+    let startDate: Date;
+
+    if (reportType === "weekly") {
+      startDate = startOfWeek(today, { weekStartsOn: 0 });
+    } else if (reportType === "monthly") {
+      startDate = startOfMonth(today);
+    } else {
+      startDate = new Date(today.getFullYear(), 0, 1);
+    }
+
+    return transactions.filter((tx) => {
+      const txDate = new Date(tx.date);
+      return txDate >= startDate && txDate <= today;
+    });
+  };
+
+  const filteredTransactions = getFilteredTransactions();
+
   const getWeeklyData = () => {
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 0 });
@@ -76,23 +106,10 @@ export default function Reports() {
   };
 
   const getYearlyData = () => {
-    const months = [
-      "জান",
-      "ফেব",
-      "মার",
-      "এপ",
-      "মে",
-      "জুন",
-      "জুল",
-      "আগ",
-      "সেপ",
-      "অক্টো",
-      "নভ",
-      "ডিসেম",
-    ];
+    const months = ["জান", "ফেব", "মার", "এপ", "মে", "জুন", "জুল", "আগ", "সেপ", "অক্টো", "নভ", "ডিসেম"];
     return months.map((m, i) => {
       const monthTxs = transactions.filter(
-        (tx) => new Date(tx.date).getMonth() === i,
+        (tx) => new Date(tx.date).getMonth() === i && new Date(tx.date).getFullYear() === new Date().getFullYear()
       );
       return {
         day: m,
@@ -106,33 +123,10 @@ export default function Reports() {
     });
   };
 
-  const getCategoryBreakdown = () => {
+  const getBreakdown = (type: "income" | "expense") => {
     const data: Record<string, number> = {};
-    transactions
-      .filter((tx) => tx.type === "expense")
-      .forEach((tx) => {
-        data[tx.category] = (data[tx.category] || 0) + tx.amount;
-      });
-    return Object.entries(data)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-  };
-
-  const COLORS = [
-    "#10b981",
-    "#f43f5e",
-    "#f59e0b",
-    "#6366f1",
-    "#06b6d4",
-    "#d946ef",
-    "#8b5cf6",
-    "#f97316",
-  ];
-
-  const getIncomeCategoryBreakdown = () => {
-    const data: Record<string, number> = {};
-    transactions
-      .filter((tx) => tx.type === "income")
+    filteredTransactions
+      .filter((tx) => tx.type === type)
       .forEach((tx) => {
         data[tx.category] = (data[tx.category] || 0) + tx.amount;
       });
@@ -148,10 +142,12 @@ export default function Reports() {
         ? getMonthlyData()
         : getYearlyData();
 
+  const incomeBreakdown = getBreakdown("income");
+  const expenseBreakdown = getBreakdown("expense");
+
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#020617] transition-colors duration-300">
       <div className="max-w-6xl mx-auto p-4 md:p-8 lg:p-12 pb-24">
-        {/* Page Title */}
         <div className="mb-8 space-y-1 text-center md:text-left">
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
             হিসাব <span className="text-emerald-600">বিশ্লেষণ</span>
@@ -161,48 +157,20 @@ export default function Reports() {
           </p>
         </div>
 
-        {/* Global Stats Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {[
-            {
-              label: "মোট আয়",
-              value: income,
-              color: "text-emerald-600",
-              bg: "bg-emerald-50 dark:bg-emerald-500/10",
-              icon: ArrowUpRight,
-            },
-            {
-              label: "মোট ব্যয়",
-              value: expense,
-              color: "text-rose-600",
-              bg: "bg-rose-50 dark:bg-rose-500/10",
-              icon: ArrowDownLeft,
-            },
-            {
-              label: "ব্যালেন্স",
-              value: balance,
-              color: balance >= 0 ? "text-blue-600" : "text-rose-600",
-              bg: "bg-blue-50 dark:bg-blue-500/10",
-              icon: Wallet,
-            },
+            { label: "মোট আয়", value: income, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-500/10", icon: ArrowUpRight },
+            { label: "মোট ব্যয়", value: expense, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-500/10", icon: ArrowDownLeft },
+            { label: "ব্য্যালেন্স", value: balance, color: balance >= 0 ? "text-blue-600" : "text-rose-600", bg: "bg-blue-50 dark:bg-blue-500/10", icon: Wallet },
           ].map((stat, i) => (
-            <Card
-              key={i}
-              className="border-none shadow-sm rounded-[2rem] overflow-hidden"
-            >
+            <Card key={i} className="border-none shadow-sm rounded-[2rem] overflow-hidden">
               <CardContent className="p-6 flex items-center gap-4">
-                <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stat.bg} ${stat.color}`}
-                >
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
                   <stat.icon size={24} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    {stat.label}
-                  </p>
-                  <p className={`text-2xl font-bold ${stat.color}`}>
-                    ৳{stat.value.toLocaleString("bn-BD")}
-                  </p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                  <p className={`text-2xl font-bold ${stat.color}`}>৳{stat.value.toLocaleString("bn-BD")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -218,81 +186,31 @@ export default function Reports() {
                     <BarChart3 className="text-emerald-600" size={24} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-2xl text-slate-800 dark:text-white leading-none">
-                      আয়-ব্যয় গ্রাফ
-                    </h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                      ক্যাশ ফ্লো চার্ট
-                    </p>
+                    <h3 className="font-bold text-2xl text-slate-800 dark:text-white leading-none">আয়-ব্যয় গ্রাফ</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">ক্যাশ ফ্লো চার্ট</p>
                   </div>
                 </div>
-
-                {/* Toggle Switch */}
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-full md:w-auto shadow-inner">
                   {(["weekly", "monthly", "yearly"] as const).map((type) => (
                     <button
                       key={type}
                       onClick={() => setReportType(type)}
-                      className={`flex-1 px-6 py-2.5 rounded-xl text-xs font-black transition-all duration-300 ${
-                        reportType === type
-                          ? "bg-white dark:bg-slate-700 text-emerald-600 shadow-md scale-100"
-                          : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                      }`}
+                      className={`flex-1 px-6 py-2.5 rounded-xl text-xs font-black transition-all duration-300 ${reportType === type ? "bg-white dark:bg-slate-700 text-emerald-600 shadow-md scale-100" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
                     >
-                      {type === "weekly"
-                        ? "সাপ্তাহিক"
-                        : type === "monthly"
-                          ? "মাসিক"
-                          : "বার্ষিক"}
+                      {type === "weekly" ? "সাপ্তাহিক" : type === "monthly" ? "মাসিক" : "বার্ষিক"}
                     </button>
                   ))}
                 </div>
               </div>
-
               <div className="h-[400px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={currentChartData}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="#e2e8f0"
-                      opacity={0.5}
-                    />
-                    <XAxis
-                      dataKey="day"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "#f8fafc" }}
-                      contentStyle={{
-                        borderRadius: "20px",
-                        border: "none",
-                        boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)",
-                      }}
-                      formatter={(v) => [`৳${v?.toLocaleString("bn-BD")}`, ""]}
-                    />
-                    <Bar
-                      dataKey="income"
-                      fill="#10b981"
-                      radius={[8, 8, 0, 0]}
-                      barSize={reportType === "monthly" ? 8 : 25}
-                    />
-                    <Bar
-                      dataKey="expense"
-                      fill="#f43f5e"
-                      radius={[8, 8, 0, 0]}
-                      barSize={reportType === "monthly" ? 8 : 25}
-                    />
+                  <BarChart data={currentChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }} />
+                    <Tooltip cursor={{ fill: "#f8fafc" }} contentStyle={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }} formatter={(v) => [`৳${v?.toLocaleString("bn-BD")}`, ""]} />
+                    <Bar dataKey="income" fill="#10b981" radius={[8, 8, 0, 0]} barSize={reportType === "monthly" ? 8 : 25} />
+                    <Bar dataKey="expense" fill="#f43f5e" radius={[8, 8, 0, 0]} barSize={reportType === "monthly" ? 8 : 25} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -305,59 +223,30 @@ export default function Reports() {
                 <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">
                   <ArrowUpRight className="text-emerald-600" size={20} />
                 </div>
-                <h3 className="font-bold text-xl text-slate-800 dark:text-white">
-                  আয় বিভাজন
-                </h3>
+                <h3 className="font-bold text-xl text-slate-800 dark:text-white">আয় বিভাজন</h3>
               </div>
-              {getIncomeCategoryBreakdown().length > 0 ? (
+              {incomeBreakdown.length > 0 ? (
                 <div className="space-y-8">
                   <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie
-                          data={getIncomeCategoryBreakdown()}
-                          innerRadius={65}
-                          outerRadius={90}
-                          paddingAngle={10}
-                          dataKey="value"
-                        >
-                          {getIncomeCategoryBreakdown().map((_, i) => (
-                            <Cell
-                              key={`cell-${i}`}
-                              fill={COLORS[i % COLORS.length]}
-                              stroke="none"
-                            />
+                        <Pie data={incomeBreakdown} innerRadius={65} outerRadius={90} paddingAngle={10} dataKey="value">
+                          {incomeBreakdown.map((_, i) => (
+                            <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} stroke="none" />
                           ))}
                         </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "20px",
-                            border: "none",
-                          }}
-                        />
+                        <Tooltip contentStyle={{ borderRadius: "20px", border: "none" }} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="grid grid-cols-1 gap-3 max-h-[180px] overflow-y-auto custom-scrollbar pr-2">
-                    {getIncomeCategoryBreakdown().map((cat, i) => (
-                      <div
-                        key={cat.name}
-                        className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100"
-                      >
+                    {incomeBreakdown.map((cat, i) => (
+                      <div key={cat.name} className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100">
                         <div className="flex items-center gap-3">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{
-                              backgroundColor: COLORS[i % COLORS.length],
-                            }}
-                          />
-                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                            {cat.name}
-                          </span>
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">{cat.name}</span>
                         </div>
-                        <span className="text-sm font-black text-slate-900 dark:text-white">
-                          ৳{cat.value.toLocaleString("bn-BD")}
-                        </span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">৳{cat.value.toLocaleString("bn-BD")}</span>
                       </div>
                     ))}
                   </div>
@@ -375,59 +264,30 @@ export default function Reports() {
                 <div className="p-2 bg-rose-50 dark:bg-rose-500/10 rounded-xl">
                   <ArrowDownLeft className="text-rose-600" size={20} />
                 </div>
-                <h3 className="font-bold text-xl text-slate-800 dark:text-white">
-                  ব্যয় বিভাজন
-                </h3>
+                <h3 className="font-bold text-xl text-slate-800 dark:text-white">ব্যয় বিভাজন</h3>
               </div>
-              {getCategoryBreakdown().length > 0 ? (
+              {expenseBreakdown.length > 0 ? (
                 <div className="space-y-8">
                   <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie
-                          data={getCategoryBreakdown()}
-                          innerRadius={65}
-                          outerRadius={90}
-                          paddingAngle={10}
-                          dataKey="value"
-                        >
-                          {getCategoryBreakdown().map((_, i) => (
-                            <Cell
-                              key={`cell-${i}`}
-                              fill={COLORS[i % COLORS.length]}
-                              stroke="none"
-                            />
+                        <Pie data={expenseBreakdown} innerRadius={65} outerRadius={90} paddingAngle={10} dataKey="value">
+                          {expenseBreakdown.map((_, i) => (
+                            <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} stroke="none" />
                           ))}
                         </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "20px",
-                            border: "none",
-                          }}
-                        />
+                        <Tooltip contentStyle={{ borderRadius: "20px", border: "none" }} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="grid grid-cols-1 gap-3 max-h-[180px] overflow-y-auto custom-scrollbar pr-2">
-                    {getCategoryBreakdown().map((cat, i) => (
-                      <div
-                        key={cat.name}
-                        className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100"
-                      >
+                    {expenseBreakdown.map((cat, i) => (
+                      <div key={cat.name} className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100">
                         <div className="flex items-center gap-3">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{
-                              backgroundColor: COLORS[i % COLORS.length],
-                            }}
-                          />
-                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                            {cat.name}
-                          </span>
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">{cat.name}</span>
                         </div>
-                        <span className="text-sm font-black text-slate-900 dark:text-white">
-                          ৳{cat.value.toLocaleString("bn-BD")}
-                        </span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">৳{cat.value.toLocaleString("bn-BD")}</span>
                       </div>
                     ))}
                   </div>
