@@ -15,7 +15,6 @@ import {
 } from "recharts";
 import { useKhataStore } from "../store/useKhataStore";
 import {
-  PieChart as PieIcon,
   BarChart3,
   ArrowUpRight,
   ArrowDownLeft,
@@ -130,6 +129,18 @@ export default function Reports() {
     "#f97316",
   ];
 
+  const getIncomeCategoryBreakdown = () => {
+    const data: Record<string, number> = {};
+    transactions
+      .filter((tx) => tx.type === "income")
+      .forEach((tx) => {
+        data[tx.category] = (data[tx.category] || 0) + tx.amount;
+      });
+    return Object.entries(data)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  };
+
   const currentChartData =
     reportType === "weekly"
       ? getWeeklyData()
@@ -198,28 +209,33 @@ export default function Reports() {
           ))}
         </div>
 
-        {/* Main Grid: Desktop 2 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Chart Section */}
-          <div className="lg:col-span-8 space-y-6">
-            <Card className="border-none shadow-md rounded-[2.5rem] p-4 md:p-8 dark:bg-slate-900">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="text-emerald-600" size={20} />
-                  <h3 className="font-bold text-xl text-slate-800 dark:text-white">
-                    আয়-ব্যয় গ্রাফ
-                  </h3>
+        <div className="space-y-10">
+          <div className="w-full">
+            <Card className="border-none shadow-md rounded-[2.5rem] p-6 md:p-10 dark:bg-slate-900 overflow-hidden relative">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">
+                    <BarChart3 className="text-emerald-600" size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-2xl text-slate-800 dark:text-white leading-none">
+                      আয়-ব্যয় গ্রাফ
+                    </h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                      ক্যাশ ফ্লো চার্ট
+                    </p>
+                  </div>
                 </div>
 
-                {/* Modern Toggle Switch */}
-                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full md:w-auto">
+                {/* Toggle Switch */}
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-full md:w-auto shadow-inner">
                   {(["weekly", "monthly", "yearly"] as const).map((type) => (
                     <button
                       key={type}
                       onClick={() => setReportType(type)}
-                      className={`flex-1 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                      className={`flex-1 px-6 py-2.5 rounded-xl text-xs font-black transition-all duration-300 ${
                         reportType === type
-                          ? "bg-white dark:bg-slate-700 text-emerald-600 shadow-sm"
+                          ? "bg-white dark:bg-slate-700 text-emerald-600 shadow-md scale-100"
                           : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                       }`}
                     >
@@ -233,7 +249,7 @@ export default function Reports() {
                 </div>
               </div>
 
-              <div className="h-[350px] w-full">
+              <div className="h-[400px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={currentChartData}
@@ -243,38 +259,39 @@ export default function Reports() {
                       strokeDasharray="3 3"
                       vertical={false}
                       stroke="#e2e8f0"
+                      opacity={0.5}
                     />
                     <XAxis
                       dataKey="day"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 600 }}
+                      tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 600 }}
+                      tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }}
                     />
                     <Tooltip
-                      cursor={{ fill: "#f1f5f9" }}
+                      cursor={{ fill: "#f8fafc" }}
                       contentStyle={{
-                        borderRadius: "16px",
+                        borderRadius: "20px",
                         border: "none",
-                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                        boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)",
                       }}
                       formatter={(v) => [`৳${v?.toLocaleString("bn-BD")}`, ""]}
                     />
                     <Bar
                       dataKey="income"
                       fill="#10b981"
-                      radius={[6, 6, 0, 0]}
-                      barSize={reportType === "monthly" ? 6 : 12}
+                      radius={[8, 8, 0, 0]}
+                      barSize={reportType === "monthly" ? 8 : 25}
                     />
                     <Bar
                       dataKey="expense"
                       fill="#f43f5e"
-                      radius={[6, 6, 0, 0]}
-                      barSize={reportType === "monthly" ? 6 : 12}
+                      radius={[8, 8, 0, 0]}
+                      barSize={reportType === "monthly" ? 8 : 25}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -282,26 +299,96 @@ export default function Reports() {
             </Card>
           </div>
 
-          {/* Breakdown Section */}
-          <div className="lg:col-span-4 space-y-6">
-            <Card className="border-none shadow-md rounded-[2.5rem] p-8 dark:bg-slate-900 h-full">
-              <div className="flex items-center gap-2 mb-6">
-                <PieIcon className="text-emerald-600" size={20} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="border-none shadow-md rounded-[2.5rem] p-8 dark:bg-slate-900">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">
+                  <ArrowUpRight className="text-emerald-600" size={20} />
+                </div>
+                <h3 className="font-bold text-xl text-slate-800 dark:text-white">
+                  আয় বিভাজন
+                </h3>
+              </div>
+              {getIncomeCategoryBreakdown().length > 0 ? (
+                <div className="space-y-8">
+                  <div className="h-[250px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={getIncomeCategoryBreakdown()}
+                          innerRadius={65}
+                          outerRadius={90}
+                          paddingAngle={10}
+                          dataKey="value"
+                        >
+                          {getIncomeCategoryBreakdown().map((_, i) => (
+                            <Cell
+                              key={`cell-${i}`}
+                              fill={COLORS[i % COLORS.length]}
+                              stroke="none"
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: "20px",
+                            border: "none",
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 max-h-[180px] overflow-y-auto custom-scrollbar pr-2">
+                    {getIncomeCategoryBreakdown().map((cat, i) => (
+                      <div
+                        key={cat.name}
+                        className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{
+                              backgroundColor: COLORS[i % COLORS.length],
+                            }}
+                          />
+                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                            {cat.name}
+                          </span>
+                        </div>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">
+                          ৳{cat.value.toLocaleString("bn-BD")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[300px] text-slate-400">
+                  <ArrowUpRight size={48} className="opacity-10 mb-4" />
+                  <p className="text-sm font-bold">আয়ের কোনো ডেটা নেই</p>
+                </div>
+              )}
+            </Card>
+
+            <Card className="border-none shadow-md rounded-[2.5rem] p-8 dark:bg-slate-900">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-2 bg-rose-50 dark:bg-rose-500/10 rounded-xl">
+                  <ArrowDownLeft className="text-rose-600" size={20} />
+                </div>
                 <h3 className="font-bold text-xl text-slate-800 dark:text-white">
                   ব্যয় বিভাজন
                 </h3>
               </div>
-
               {getCategoryBreakdown().length > 0 ? (
                 <div className="space-y-8">
-                  <div className="h-[220px] w-full">
+                  <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={getCategoryBreakdown()}
-                          innerRadius={60}
-                          outerRadius={85}
-                          paddingAngle={8}
+                          innerRadius={65}
+                          outerRadius={90}
+                          paddingAngle={10}
                           dataKey="value"
                         >
                           {getCategoryBreakdown().map((_, i) => (
@@ -314,25 +401,22 @@ export default function Reports() {
                         </Pie>
                         <Tooltip
                           contentStyle={{
-                            borderRadius: "16px",
+                            borderRadius: "20px",
                             border: "none",
-                            boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                           }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-
-                  {/* Legends List */}
-                  <div className="grid grid-cols-1 gap-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="grid grid-cols-1 gap-3 max-h-[180px] overflow-y-auto custom-scrollbar pr-2">
                     {getCategoryBreakdown().map((cat, i) => (
                       <div
                         key={cat.name}
-                        className="flex justify-between items-center group p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100"
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-2.5 h-2.5 rounded-full"
+                            className="w-3 h-3 rounded-full"
                             style={{
                               backgroundColor: COLORS[i % COLORS.length],
                             }}
@@ -341,7 +425,7 @@ export default function Reports() {
                             {cat.name}
                           </span>
                         </div>
-                        <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        <span className="text-sm font-black text-slate-900 dark:text-white">
                           ৳{cat.value.toLocaleString("bn-BD")}
                         </span>
                       </div>
@@ -350,10 +434,8 @@ export default function Reports() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-[300px] text-slate-400">
-                  <PieIcon size={48} className="opacity-10 mb-4" />
-                  <p className="text-sm font-medium">
-                    কোনো খরচের ডেটা পাওয়া যায়নি
-                  </p>
+                  <ArrowDownLeft size={48} className="opacity-10 mb-4" />
+                  <p className="text-sm font-bold">ব্যয়ের কোনো ডেটা নেই</p>
                 </div>
               )}
             </Card>
