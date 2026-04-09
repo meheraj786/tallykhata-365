@@ -116,11 +116,10 @@ export default function Reports() {
       end = endOfYear(today);
     }
 
-    return localTransactions.filter(
-      (tx) =>
-        tx.createdAt &&
-        isWithinInterval(new Date(tx.createdAt), { start, end }),
-    );
+    return localTransactions.filter((tx) => {
+      if (!tx.date) return false;
+      return isWithinInterval(parseISO(tx.date), { start, end });
+    });
   }, [localTransactions, filterType, customDate]);
 
   const stats = useMemo(() => {
@@ -141,8 +140,8 @@ export default function Reports() {
     filteredData.forEach((tx) => {
       const label =
         filterType === "yearly"
-          ? format(new Date(tx.createdAt), "MMM")
-          : format(new Date(tx.createdAt), "dd MMM");
+          ? format(parseISO(tx.date), "MMM")
+          : format(parseISO(tx.date), "dd MMM");
       if (!map[label]) map[label] = { name: label, gave: 0, received: 0 };
       if (tx.type === "gave") map[label].gave += tx.amount;
       else map[label].received += tx.amount;
@@ -150,15 +149,22 @@ export default function Reports() {
     return Object.values(map);
   }, [filteredData, filterType]);
 
-  const topDebtors = useMemo(
-    () =>
-      customers
-        .filter((c) => c.totalDue > 0)
-        .sort((a, b) => b.totalDue - a.totalDue)
-        .slice(0, 5)
-        .map((c) => ({ name: c.name, value: c.totalDue })),
-    [customers],
-  );
+  const topDebtors = useMemo(() => {
+    const customerMap = new Map<string, { name: string; value: number }>();
+
+    filteredData.forEach((tx) => {
+      if (tx.type !== "gave") return;
+      const name = tx.customerName || "অজানা";
+      const existing = customerMap.get(name) ?? { name, value: 0 };
+      existing.value += tx.amount;
+      customerMap.set(name, existing);
+    });
+
+    return Array.from(customerMap.values())
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  }, [filteredData]);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 lg:p-12 pb-32">
