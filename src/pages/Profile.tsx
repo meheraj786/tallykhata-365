@@ -1,6 +1,6 @@
 import { auth } from "../lib/firebase";
 import { useLedgerStore } from "../store/useLedgerStore";
-import { Users, Wallet, Calendar, Mail, LogOut } from "lucide-react";
+import { Users, Wallet, Calendar, LogOut } from "lucide-react";
 import { signOut } from "firebase/auth";
 
 export default function Profile() {

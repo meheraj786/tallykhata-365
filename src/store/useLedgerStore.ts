@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { 
   collection, 
   addDoc, 
-  updateDoc, 
+  // updateDoc, 
   deleteDoc, 
   doc, 
   increment, 

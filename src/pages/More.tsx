@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Info, ShieldCheck, Database, Smartphone, Heart } from "lucide-react";
+import { Info, ShieldCheck, Database, Smartphone } from "lucide-react";
 import InstallPWA from "@/components/InstallPWA";
 
 export default function More() {
