@@ -21,7 +21,7 @@ export default function AddCustomerModal({ open, onOpenChange }: Props) {
     e.preventDefault();
     if (!name.trim()) return;
     setLoading(true);
-    await addCustomer(name, phone);
+    addCustomer(name, phone);
     setLoading(false);
     setName("");
     setPhone("");

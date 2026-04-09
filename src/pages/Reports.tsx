@@ -4,7 +4,7 @@ import {
   startOfMonth, endOfMonth, startOfYear, endOfYear, 
   isWithinInterval, format, parseISO 
 } from "date-fns";
-import { collectionGroup, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collectionGroup, query, orderBy, onSnapshot, where } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -26,17 +26,25 @@ export default function Reports() {
 
   useEffect(() => {
     if (!auth.currentUser) return;
-    const qTx = query(collectionGroup(db, "ledger"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(qTx, (snap) => {
+
+    const qTx = query(
+      collectionGroup(db, "ledger"), 
+      where("userId", "==", auth.currentUser.uid),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubscribe = onSnapshot(qTx, { includeMetadataChanges: true }, (snap) => {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
       setLocalTransactions(list);
     });
+
     return () => unsubscribe();
-  }, []);
+  }, [auth.currentUser]);
 
   const filteredData = useMemo(() => {
     const today = new Date();
     let start: Date, end: Date;
+
     if (filterType === "daily") {
       start = startOfDay(parseISO(customDate));
       end = endOfDay(parseISO(customDate));
@@ -50,6 +58,7 @@ export default function Reports() {
       start = startOfYear(today);
       end = endOfYear(today);
     }
+
     return localTransactions.filter((tx) => {
       if (!tx.createdAt) return false;
       const txDate = new Date(tx.createdAt);
@@ -137,7 +146,7 @@ export default function Reports() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
-                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '15px', border: 'none'}} />
                   <Bar dataKey="received" fill="#10b981" radius={[4, 4, 0, 0]} name="পেয়েছি" />
                   <Bar dataKey="gave" fill="#f43f5e" radius={[4, 4, 0, 0]} name="দিয়েছি" />
                 </BarChart>

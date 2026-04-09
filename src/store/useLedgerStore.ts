@@ -1,13 +1,5 @@
 import { create } from 'zustand';
-import { 
-  collection, 
-  addDoc, 
-  // updateDoc, 
-  deleteDoc, 
-  doc, 
-  increment, 
-  writeBatch
-} from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, increment, writeBatch } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 
 export interface LedgerEntry {
@@ -18,6 +10,7 @@ export interface LedgerEntry {
   time: string;
   note: string;
   customerName?: string;
+  userId: string; // নতুন যোগ করা হয়েছে
   createdAt: number;
 }
 
@@ -32,13 +25,11 @@ export interface Customer {
 interface LedgerState {
   customers: Customer[];
   activeLedger: LedgerEntry[];
-  allTransactions: LedgerEntry[];
   setCustomers: (customers: Customer[]) => void;
   setActiveLedger: (entries: LedgerEntry[]) => void;
-  setAllTransactions: (entries: LedgerEntry[]) => void;
-  addCustomer: (name: string, phone: string) => Promise<void>;
+  addCustomer: (name: string, phone: string) => void;
   deleteCustomer: (customerId: string) => Promise<void>;
-  addLedgerEntry: (customerId: string, customerName: string, entry: Omit<LedgerEntry, 'id' | 'createdAt' | 'time' | 'customerName'>) => Promise<void>;
+  addLedgerEntry: (customerId: string, customerName: string, entry: Omit<LedgerEntry, 'id' | 'createdAt' | 'time' | 'customerName' | 'userId'>) => void;
   updateLedgerEntry: (customerId: string, entryId: string, oldEntry: LedgerEntry, newData: Partial<LedgerEntry>) => Promise<void>;
   deleteLedgerEntry: (customerId: string, entryId: string, amount: number, type: 'gave' | 'received') => Promise<void>;
   getTotalReceivable: () => number;
@@ -48,16 +39,15 @@ interface LedgerState {
 export const useLedgerStore = create<LedgerState>((set, get) => ({
   customers: [],
   activeLedger: [],
-  allTransactions: [],
 
   setCustomers: (customers) => set({ customers }),
   setActiveLedger: (entries) => set({ activeLedger: entries }),
-  setAllTransactions: (entries) => set({ allTransactions: entries }),
 
-  addCustomer: async (name, phone) => {
+  addCustomer: (name, phone) => {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
-    await addDoc(collection(db, 'users', userId, 'customers'), {
+    // এখানে await সরানো হয়েছে যাতে অফলাইনে সাথে সাথে রেসপন্স পাওয়া যায়
+    addDoc(collection(db, 'users', userId, 'customers'), {
       name, phone, totalDue: 0, updatedAt: Date.now(),
     });
   },
@@ -68,13 +58,16 @@ export const useLedgerStore = create<LedgerState>((set, get) => ({
     await deleteDoc(doc(db, 'users', userId, 'customers', customerId));
   },
 
-  addLedgerEntry: async (customerId, customerName, entryData) => {
+  addLedgerEntry: (customerId, customerName, entryData) => {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
     const batch = writeBatch(db);
     const ledgerRef = collection(db, 'users', userId, 'customers', customerId, 'ledger');
     const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const newEntry = { ...entryData, customerName, time: currentTime, createdAt: Date.now() };
+    
+    // userId যোগ করা হলো রিপোর্টের জন্য
+    const newEntry = { ...entryData, userId, customerName, time: currentTime, createdAt: Date.now() };
+    
     const balanceChange = entryData.type === 'gave' ? entryData.amount : -entryData.amount;
     const newDocRef = doc(ledgerRef);
     batch.set(newDocRef, newEntry);
@@ -82,7 +75,7 @@ export const useLedgerStore = create<LedgerState>((set, get) => ({
       totalDue: increment(balanceChange),
       updatedAt: Date.now()
     });
-    await batch.commit();
+    batch.commit(); // await সরানো হয়েছে
   },
 
   updateLedgerEntry: async (customerId, entryId, oldEntry, newData) => {
