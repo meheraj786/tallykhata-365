@@ -9,8 +9,8 @@ export interface LedgerEntry {
   date: string;
   time: string;
   note: string;
-  customerName?: string;
-  userId: string; // নতুন যোগ করা হয়েছে
+  customerName: string;
+  userId: string;
   createdAt: number;
 }
 
@@ -46,7 +46,6 @@ export const useLedgerStore = create<LedgerState>((set, get) => ({
   addCustomer: (name, phone) => {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
-    // এখানে await সরানো হয়েছে যাতে অফলাইনে সাথে সাথে রেসপন্স পাওয়া যায়
     addDoc(collection(db, 'users', userId, 'customers'), {
       name, phone, totalDue: 0, updatedAt: Date.now(),
     });
@@ -64,10 +63,7 @@ export const useLedgerStore = create<LedgerState>((set, get) => ({
     const batch = writeBatch(db);
     const ledgerRef = collection(db, 'users', userId, 'customers', customerId, 'ledger');
     const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    
-    // userId যোগ করা হলো রিপোর্টের জন্য
     const newEntry = { ...entryData, userId, customerName, time: currentTime, createdAt: Date.now() };
-    
     const balanceChange = entryData.type === 'gave' ? entryData.amount : -entryData.amount;
     const newDocRef = doc(ledgerRef);
     batch.set(newDocRef, newEntry);
@@ -75,7 +71,7 @@ export const useLedgerStore = create<LedgerState>((set, get) => ({
       totalDue: increment(balanceChange),
       updatedAt: Date.now()
     });
-    batch.commit(); // await সরানো হয়েছে
+    batch.commit();
   },
 
   updateLedgerEntry: async (customerId, entryId, oldEntry, newData) => {
