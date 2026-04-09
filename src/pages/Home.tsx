@@ -1,203 +1,142 @@
-import {
-  Plus,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Wallet,
-  Calendar,
-  History,
-} from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
-import { useKhataStore } from "../store/useKhataStore";
+import { 
+  Users, 
+  Search, 
+  Phone, 
+  ArrowUpRight, 
+  ArrowDownLeft,
+  UserPlus
+} from "lucide-react";
+import { useLedgerStore } from "../store/useLedgerStore";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Props {
-  onAddClick: () => void;
+  onAddCustomerClick: () => void;
 }
 
-export default function Home({ onAddClick }: Props) {
+export default function Home({ onAddCustomerClick }: Props) {
   const navigate = useNavigate();
-  const { getBalance, getTodayTransactions, transactions } = useKhataStore();
+  const { customers, getTotalReceivable, getTotalPayable } = useLedgerStore();
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const balance = getBalance();
-  const todayTx = getTodayTransactions();
-  const recentTransactions = transactions.slice(0, 8);
+  const receivable = getTotalReceivable();
+  const payable = getTotalPayable();
 
-  const todayIncome = todayTx
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const todayExpense = todayTx
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const filteredCustomers = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.phone.includes(searchQuery)
+  );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#020617] transition-colors duration-300">
-      <div className="max-w-6xl mx-auto p-4 md:p-8 lg:p-12 pb-28 md:pb-12">
-        {/* Responsive Header */}
-        <header className="flex justify-between items-center mb-10">
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 lg:p-12 pb-32 md:pb-12">
+      <div className="max-w-6xl mx-auto space-y-8">
+        
+        {/* Header Section */}
+        <header className="flex justify-between items-center">
           <div className="space-y-1">
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-              আমার<span className="text-emerald-600">খাতা</span>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+              টালিখাতা<span className="text-emerald-600">365</span>
             </h1>
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-              <Calendar size={16} className="text-emerald-500" />
-              <p className="text-sm font-semibold">
-                আজ{" "}
-                {new Date().toLocaleDateString("bn-BD", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </p>
-            </div>
+            <p className="text-sm font-bold text-slate-400 flex items-center gap-2">
+              <Users size={16} className="text-emerald-500" />
+              মোট {customers.length} জন কাস্টমার
+            </p>
           </div>
 
           <button
-            onClick={onAddClick}
-            className="hidden md:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-200 dark:shadow-none hover:scale-105 active:scale-95"
+            onClick={onAddCustomerClick}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-100 flex items-center gap-2 active:scale-95"
           >
-            <Plus size={20} strokeWidth={3} />
-            নতুন এন্ট্রি
-          </button>
-
-          {/* Mobile Add Button */}
-          <button
-            onClick={onAddClick}
-            className="md:hidden w-12 h-12 bg-emerald-600 flex items-center justify-center rounded-2xl text-white shadow-lg active:scale-90 transition-transform"
-          >
-            <Plus size={24} strokeWidth={3} />
+            <UserPlus size={20} />
+            <span className="hidden md:inline">নতুন কাস্টমার</span>
           </button>
         </header>
 
-        {/* Responsive Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Stats & Balance (Sticky on Desktop) */}
-          <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
-            {/* Balance Card */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-700 rounded-[2.5rem] p-8 text-white shadow-xl">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Wallet size={120} />
-              </div>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-none shadow-md rounded-[2.5rem] bg-white overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <ArrowUpRight size={80} />
+            </div>
+            <CardContent className="p-8 space-y-2">
+              <p className="text-xs font-black text-emerald-600 uppercase tracking-widest">মোট পাবেন (পাওনা)</p>
+              <h2 className="text-4xl font-black text-slate-900">
+                ৳ {receivable.toLocaleString("bn-BD")}
+              </h2>
+            </CardContent>
+          </Card>
 
-              <div className="relative z-10 space-y-6">
-                <p className="text-emerald-100/80 font-bold uppercase tracking-widest text-xs">
-                  বর্তমান ব্যালেন্স
-                </p>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-light italic">৳</span>
-                  <h2 className="text-5xl md:text-6xl font-bold text-white! tracking-tighter">
-                    {balance.toLocaleString("bn-BD")}
-                  </h2>
-                </div>
-                {/* <div className="flex items-center gap-3 pt-6 border-t border-white/10">
-                  <div className="flex -space-x-2">
-                    <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-emerald-500 flex items-center justify-center backdrop-blur-sm">
-                      <Wallet size={14} />
+          <Card className="border-none shadow-md rounded-[2.5rem] bg-white overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <ArrowDownLeft size={80} />
+            </div>
+            <CardContent className="p-8 space-y-2">
+              <p className="text-xs font-black text-rose-600 uppercase tracking-widest">মোট দিবেন (দেনা)</p>
+              <h2 className="text-4xl font-black text-slate-900">
+                ৳ {payable.toLocaleString("bn-BD")}
+              </h2>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative group">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" size={20} />
+          <input
+            type="text"
+            placeholder="কাস্টমারের নাম বা ফোন নম্বর দিয়ে খুঁজুন..."
+            className="w-full h-16 pl-14 pr-6 rounded-3xl bg-white border-none shadow-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Customer List */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] ml-2">কাস্টমার লিস্ট</h3>
+          
+          {filteredCustomers.length === 0 ? (
+            <div className="bg-white border-2 border-dashed border-slate-200 rounded-[3rem] p-20 text-center">
+              <Users size={48} className="mx-auto text-slate-200 mb-4" />
+              <p className="text-slate-400 font-bold">কোনো কাস্টমার পাওয়া যায়নি</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
+              {filteredCustomers.map((customer) => (
+                <div
+                  key={customer.id}
+                  onClick={() => navigate(`/customer/${customer.id}`)}
+                  className="group bg-white p-6 rounded-[2rem] border border-transparent hover:border-emerald-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100/20 transition-all cursor-pointer flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                      <Users size={24} />
                     </div>
-                  </div>
-                  <span className="text-sm font-medium text-emerald-50">
-                   
-                  </span>
-                </div> */}
-              </div>
-            </div>
-
-            {/* Income/Expense Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mb-4">
-                  <ArrowUpRight size={22} className="text-emerald-600" />
-                </div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  আজকের আয়
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
-                  ৳ {todayIncome.toLocaleString("bn-BD")}
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center mb-4">
-                  <ArrowDownLeft size={22} className="text-rose-600" />
-                </div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  আজকের ব্যয়
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
-                  ৳ {todayExpense.toLocaleString("bn-BD")}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Transactions List */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="flex justify-between items-center px-2">
-              <div className="flex items-center gap-2">
-                <History className="text-emerald-600" size={20} />
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                  সাম্প্রতিক লেনদেন
-                </h2>
-              </div>
-              <button
-                onClick={() => navigate("/transactions")}
-                className="text-sm font-bold text-emerald-600 hover:underline decoration-2 underline-offset-4"
-              >
-                সবগুলো দেখুন
-              </button>
-            </div>
-
-            {recentTransactions.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-16 text-center">
-                <div className="bg-slate-50 dark:bg-slate-800/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Plus className="text-slate-300" size={32} />
-                </div>
-                <p className="text-slate-500 dark:text-slate-400 font-medium tracking-tight">
-                  এখনো কোনো এন্ট্রি নেই। একটি যোগ করুন।
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-3">
-                {recentTransactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="group bg-white text-wrap line-clamp-2 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-4 rounded-3xl flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm ${
-                          tx.type === "income"
-                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10"
-                            : "bg-rose-50 text-rose-600 dark:bg-rose-500/10"
-                        }`}
-                      >
-                        {tx.type === "income" ? (
-                          <ArrowUpRight size={20} />
-                        ) : (
-                          <ArrowDownLeft size={20} />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
-                          {tx.category}
-                        </h4>
-                        <p className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 mt-0.5">
-                          {tx.date} {tx.notes && <span>• {tx.notes}</span>}
-                        </p>
+                    <div>
+                      <h4 className="font-black text-slate-900 text-lg group-hover:text-emerald-600 transition-colors">
+                        {customer.name}
+                      </h4>
+                      <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mt-1">
+                        <Phone size={12} />
+                        {customer.phone || "নম্বর নেই"}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p
-                        className={`text-lg font-bold tracking-tight ${tx.type === "income" ? "text-emerald-600" : "text-rose-600"}`}
-                      >
-                        {tx.type === "income" ? "+" : "-"} ৳
-                        {tx.amount.toLocaleString("bn-BD")}
-                      </p>
-                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+
+                  <div className="text-right">
+                    <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${customer.totalDue >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {customer.totalDue >= 0 ? 'আপনি পাবেন' : 'আপনি দিবেন'}
+                    </p>
+                    <p className={`text-xl font-black ${customer.totalDue >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      ৳ {Math.abs(customer.totalDue).toLocaleString("bn-BD")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

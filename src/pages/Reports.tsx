@@ -1,305 +1,199 @@
-import { useState } from "react";
-import { startOfWeek, startOfMonth, endOfMonth, format } from "date-fns";
+import { useState, useMemo, useEffect } from "react";
+import { 
+  startOfDay, endOfDay, startOfWeek, endOfWeek, 
+  startOfMonth, endOfMonth, startOfYear, endOfYear, 
+  isWithinInterval, format, parseISO 
+} from "date-fns";
+import { collectionGroup, query, orderBy, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
+  ResponsiveContainer, PieChart, Pie, Cell 
 } from "recharts";
-import { useKhataStore } from "../store/useKhataStore";
-import {
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Wallet,
-} from "lucide-react";
+import { useLedgerStore, LedgerEntry } from "../store/useLedgerStore";
+import { ArrowUpRight, ArrowDownLeft, Wallet, BarChart3, Users, Calendar, Clock } from "lucide-react";
+
+type FilterType = "daily" | "weekly" | "monthly" | "yearly";
 
 export default function Reports() {
-  const { getTotalIncome, getTotalExpense, transactions } = useKhataStore();
-  const [reportType, setReportType] = useState<"weekly" | "monthly" | "yearly">(
-    "weekly",
-  );
+  const { customers } = useLedgerStore();
+  const [localTransactions, setLocalTransactions] = useState<LedgerEntry[]>([]);
+  const [filterType, setFilterType] = useState<FilterType>("weekly");
+  const [customDate, setCustomDate] = useState(new Date().toISOString().split("T")[0]);
 
-  const income = getTotalIncome();
-  const expense = getTotalExpense();
-  const balance = income - expense;
+  const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#6366f1", "#f43f5e", "#8b5cf6", "#ec4899"];
 
-  const COLORS = [
-    "#10b981",
-    "#f43f5e",
-    "#f59e0b",
-    "#6366f1",
-    "#06b6d4",
-    "#d946ef",
-    "#8b5cf6",
-    "#f97316",
-  ];
+  useEffect(() => {
+    if (!auth.currentUser) return;
+    const qTx = query(collectionGroup(db, "ledger"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(qTx, (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+      setLocalTransactions(list);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  const getFilteredTransactions = () => {
+  const filteredData = useMemo(() => {
     const today = new Date();
-    let startDate: Date;
-
-    if (reportType === "weekly") {
-      startDate = startOfWeek(today, { weekStartsOn: 0 });
-    } else if (reportType === "monthly") {
-      startDate = startOfMonth(today);
+    let start: Date, end: Date;
+    if (filterType === "daily") {
+      start = startOfDay(parseISO(customDate));
+      end = endOfDay(parseISO(customDate));
+    } else if (filterType === "weekly") {
+      start = startOfWeek(today);
+      end = endOfWeek(today);
+    } else if (filterType === "monthly") {
+      start = startOfMonth(today);
+      end = endOfMonth(today);
     } else {
-      startDate = new Date(today.getFullYear(), 0, 1);
+      start = startOfYear(today);
+      end = endOfYear(today);
     }
-
-    return transactions.filter((tx) => {
-      const txDate = new Date(tx.date);
-      return txDate >= startDate && txDate <= today;
+    return localTransactions.filter((tx) => {
+      if (!tx.createdAt) return false;
+      const txDate = new Date(tx.createdAt);
+      return isWithinInterval(txDate, { start, end });
     });
-  };
+  }, [localTransactions, filterType, customDate]);
 
-  const filteredTransactions = getFilteredTransactions();
+  const stats = useMemo(() => {
+    const gave = filteredData.filter(t => t.type === 'gave').reduce((s, t) => s + t.amount, 0);
+    const received = filteredData.filter(t => t.type === 'received').reduce((s, t) => s + t.amount, 0);
+    return { gave, received, net: received - gave };
+  }, [filteredData]);
 
-  const getWeeklyData = () => {
-    const today = new Date();
-    const weekStart = startOfWeek(today, { weekStartsOn: 0 });
-    const days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(weekStart);
-      date.setDate(date.getDate() + i);
-      return format(date, "yyyy-MM-dd");
+  const chartData = useMemo(() => {
+    const map: Record<string, any> = {};
+    filteredData.forEach(tx => {
+      const label = filterType === "yearly" ? format(new Date(tx.createdAt), "MMM") : format(new Date(tx.createdAt), "dd MMM");
+      if (!map[label]) map[label] = { name: label, gave: 0, received: 0 };
+      if (tx.type === 'gave') map[label].gave += tx.amount;
+      else map[label].received += tx.amount;
     });
-    return days.map((day) => {
-      const dayTxs = transactions.filter((tx) => tx.date === day);
-      return {
-        day: format(new Date(day), "eee").substring(0, 3),
-        income: dayTxs
-          .filter((t) => t.type === "income")
-          .reduce((sum, t) => sum + t.amount, 0),
-        expense: dayTxs
-          .filter((t) => t.type === "expense")
-          .reduce((sum, t) => sum + t.amount, 0),
-      };
-    });
-  };
+    return Object.values(map);
+  }, [filteredData, filterType]);
 
-  const getMonthlyData = () => {
-    const today = new Date();
-    const monthStart = startOfMonth(today);
-    const monthEnd = endOfMonth(today);
-    return Array.from({ length: monthEnd.getDate() }, (_, i) => {
-      const date = new Date(monthStart);
-      date.setDate(date.getDate() + i);
-      const dateStr = format(date, "yyyy-MM-dd");
-      const dayTxs = transactions.filter((tx) => tx.date === dateStr);
-      return {
-        day: format(date, "d"),
-        income: dayTxs
-          .filter((t) => t.type === "income")
-          .reduce((sum, t) => sum + t.amount, 0),
-        expense: dayTxs
-          .filter((t) => t.type === "expense")
-          .reduce((sum, t) => sum + t.amount, 0),
-      };
-    });
-  };
-
-  const getYearlyData = () => {
-    const months = ["জান", "ফেব", "মার", "এপ", "মে", "জুন", "জুল", "আগ", "সেপ", "অক্টো", "নভ", "ডিসেম"];
-    return months.map((m, i) => {
-      const monthTxs = transactions.filter(
-        (tx) => new Date(tx.date).getMonth() === i && new Date(tx.date).getFullYear() === new Date().getFullYear()
-      );
-      return {
-        day: m,
-        income: monthTxs
-          .filter((t) => t.type === "income")
-          .reduce((sum, t) => sum + t.amount, 0),
-        expense: monthTxs
-          .filter((t) => t.type === "expense")
-          .reduce((sum, t) => sum + t.amount, 0),
-      };
-    });
-  };
-
-  const getBreakdown = (type: "income" | "expense") => {
-    const data: Record<string, number> = {};
-    filteredTransactions
-      .filter((tx) => tx.type === type)
-      .forEach((tx) => {
-        data[tx.category] = (data[tx.category] || 0) + tx.amount;
-      });
-    return Object.entries(data)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-  };
-
-  const currentChartData =
-    reportType === "weekly"
-      ? getWeeklyData()
-      : reportType === "monthly"
-        ? getMonthlyData()
-        : getYearlyData();
-
-  const incomeBreakdown = getBreakdown("income");
-  const expenseBreakdown = getBreakdown("expense");
+  const topDebtors = useMemo(() => 
+    customers.filter(c => c.totalDue > 0).sort((a,b) => b.totalDue - a.totalDue).slice(0, 5).map(c => ({ name: c.name, value: c.totalDue })),
+  [customers]);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#020617] transition-colors duration-300">
-      <div className="max-w-6xl mx-auto p-4 md:p-8 lg:p-12 pb-24">
-        <div className="mb-8 space-y-1 text-center md:text-left">
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-            হিসাব <span className="text-emerald-600">বিশ্লেষণ</span>
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">
-            আপনার লেনদেনের গ্রাফিকাল রিপোর্ট দেখুন
-          </p>
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 lg:p-12 pb-32">
+      <div className="max-w-6xl mx-auto space-y-10">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="text-center md:text-left">
+            <h1 className="text-3xl font-black text-slate-900">হিসাব <span className="text-emerald-600">রিপোর্ট</span></h1>
+            <p className="text-slate-500 font-bold text-sm">রিয়েল-টাইম আদান-প্রদান বিশ্লেষণ</p>
+          </div>
+          <div className="flex bg-slate-100 p-1 rounded-2xl shadow-inner">
+            {(["daily", "weekly", "monthly", "yearly"] as FilterType[]).map((t) => (
+              <button key={t} onClick={() => setFilterType(t)} className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${filterType === t ? "bg-white text-emerald-600 shadow-sm" : "text-slate-400"}`}>
+                {t === "daily" ? "আজ" : t === "weekly" ? "সপ্তাহ" : t === "monthly" ? "মাস" : "বছর"}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {[
-            { label: "মোট আয়", value: income, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-500/10", icon: ArrowUpRight },
-            { label: "মোট ব্যয়", value: expense, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-500/10", icon: ArrowDownLeft },
-            { label: "ব্য্যালেন্স", value: balance, color: balance >= 0 ? "text-blue-600" : "text-rose-600", bg: "bg-blue-50 dark:bg-blue-500/10", icon: Wallet },
-          ].map((stat, i) => (
-            <Card key={i} className="border-none shadow-sm rounded-[2rem] overflow-hidden">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
-                  <stat.icon size={24} />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                  <p className={`text-2xl font-bold ${stat.color}`}>৳{stat.value.toLocaleString("bn-BD")}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {filterType === "daily" && (
+          <div className="flex justify-center md:justify-end">
+            <input type="date" value={customDate} onChange={(e) => setCustomDate(e.target.value)} className="p-3 rounded-xl border-none shadow-sm font-bold text-slate-600 outline-none" />
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="border-none shadow-sm rounded-[2rem] bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><ArrowUpRight /></div>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase">পেয়েছি (In)</p><p className="text-xl font-black text-emerald-600">৳{stats.received.toLocaleString("bn-BD")}</p></div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-none shadow-sm rounded-[2rem] bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center"><ArrowDownLeft /></div>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase">দিয়েছি (Out)</p><p className="text-xl font-black text-rose-600">৳{stats.gave.toLocaleString("bn-BD")}</p></div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-none shadow-sm rounded-[2rem] bg-slate-900 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center"><Wallet /></div>
+                <div><p className="text-[10px] font-black text-slate-400 uppercase">নেট ক্যাশ</p><p className={`text-xl font-black ${stats.net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>৳{stats.net.toLocaleString("bn-BD")}</p></div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="space-y-10">
-          <div className="w-full">
-            <Card className="border-none shadow-md rounded-[2.5rem] p-6 md:p-10 dark:bg-slate-900 overflow-hidden relative">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">
-                    <BarChart3 className="text-emerald-600" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-2xl text-slate-800 dark:text-white leading-none">আয়-ব্যয় গ্রাফ</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">ক্যাশ ফ্লো চার্ট</p>
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <Card className="lg:col-span-8 border-none shadow-md rounded-[2.5rem] p-8 bg-white">
+            <div className="flex items-center gap-2 mb-8"><BarChart3 className="text-emerald-600" size={20} /><h3 className="font-bold text-lg text-slate-800">লেনদেন গ্রাফ</h3></div>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
+                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                  <Bar dataKey="received" fill="#10b981" radius={[4, 4, 0, 0]} name="পেয়েছি" />
+                  <Bar dataKey="gave" fill="#f43f5e" radius={[4, 4, 0, 0]} name="দিয়েছি" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+          <Card className="lg:col-span-4 border-none shadow-md rounded-[2.5rem] p-8 bg-white">
+            <div className="flex items-center gap-2 mb-6"><Users className="text-emerald-600" size={20} /><h3 className="font-bold text-lg text-slate-800">শীর্ষ পাওনা</h3></div>
+            {topDebtors.length > 0 ? (
+              <div className="space-y-4">
+                <div className="h-[180px] w-full">
+                  <ResponsiveContainer><PieChart><Pie data={topDebtors} innerRadius={50} outerRadius={70} dataKey="value" paddingAngle={5}>{topDebtors.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>
                 </div>
-                <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-full md:w-auto shadow-inner">
-                  {(["weekly", "monthly", "yearly"] as const).map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => setReportType(type)}
-                      className={`flex-1 px-6 py-2.5 rounded-xl text-xs font-black transition-all duration-300 ${reportType === type ? "bg-white dark:bg-slate-700 text-emerald-600 shadow-md scale-100" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
-                    >
-                      {type === "weekly" ? "সাপ্তাহিক" : type === "monthly" ? "মাসিক" : "বার্ষিক"}
-                    </button>
-                  ))}
-                </div>
+                {topDebtors.map((item, i) => (
+                  <div key={i} className="flex justify-between items-center text-xs font-bold p-2.5 bg-slate-50 rounded-xl shadow-sm">
+                    <span className="text-slate-500">{item.name}</span><span className="text-slate-900">৳{item.value.toLocaleString("bn-BD")}</span>
+                  </div>
+                ))}
               </div>
-              <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={currentChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }} />
-                    <Tooltip cursor={{ fill: "#f8fafc" }} contentStyle={{ borderRadius: "20px", border: "none", boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }} formatter={(v) => [`৳${v?.toLocaleString("bn-BD")}`, ""]} />
-                    <Bar dataKey="income" fill="#10b981" radius={[8, 8, 0, 0]} barSize={reportType === "monthly" ? 8 : 25} />
-                    <Bar dataKey="expense" fill="#f43f5e" radius={[8, 8, 0, 0]} barSize={reportType === "monthly" ? 8 : 25} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          </div>
+            ) : <p className="text-center text-slate-400 text-sm mt-10 italic">কোনো তথ্য নেই</p>}
+          </Card>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="border-none shadow-md rounded-[2.5rem] p-8 dark:bg-slate-900">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">
-                  <ArrowUpRight className="text-emerald-600" size={20} />
-                </div>
-                <h3 className="font-bold text-xl text-slate-800 dark:text-white">আয় বিভাজন</h3>
-              </div>
-              {incomeBreakdown.length > 0 ? (
-                <div className="space-y-8">
-                  <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={incomeBreakdown} innerRadius={65} outerRadius={90} paddingAngle={10} dataKey="value">
-                          {incomeBreakdown.map((_, i) => (
-                            <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} stroke="none" />
-                          ))}
-                        </Pie>
-                        <Tooltip contentStyle={{ borderRadius: "20px", border: "none" }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 max-h-[180px] overflow-y-auto custom-scrollbar pr-2">
-                    {incomeBreakdown.map((cat, i) => (
-                      <div key={cat.name} className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">{cat.name}</span>
-                        </div>
-                        <span className="text-sm font-black text-slate-900 dark:text-white">৳{cat.value.toLocaleString("bn-BD")}</span>
+        <div className="space-y-4">
+          <h3 className="text-xl font-black text-slate-800 ml-2">লেনদেন ইতিহাস ({filteredData.length})</h3>
+          {filteredData.length > 0 ? (
+            <div className="grid gap-3">
+              {filteredData.map((tx: any) => (
+                <Card key={tx.id} className="border-none shadow-sm rounded-3xl bg-white overflow-hidden hover:shadow-md transition-shadow">
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.type === 'gave' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                        {tx.type === 'gave' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-[300px] text-slate-400">
-                  <ArrowUpRight size={48} className="opacity-10 mb-4" />
-                  <p className="text-sm font-bold">আয়ের কোনো ডেটা নেই</p>
-                </div>
-              )}
-            </Card>
-
-            <Card className="border-none shadow-md rounded-[2.5rem] p-8 dark:bg-slate-900">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="p-2 bg-rose-50 dark:bg-rose-500/10 rounded-xl">
-                  <ArrowDownLeft className="text-rose-600" size={20} />
-                </div>
-                <h3 className="font-bold text-xl text-slate-800 dark:text-white">ব্যয় বিভাজন</h3>
-              </div>
-              {expenseBreakdown.length > 0 ? (
-                <div className="space-y-8">
-                  <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={expenseBreakdown} innerRadius={65} outerRadius={90} paddingAngle={10} dataKey="value">
-                          {expenseBreakdown.map((_, i) => (
-                            <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} stroke="none" />
-                          ))}
-                        </Pie>
-                        <Tooltip contentStyle={{ borderRadius: "20px", border: "none" }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 max-h-[180px] overflow-y-auto custom-scrollbar pr-2">
-                    {expenseBreakdown.map((cat, i) => (
-                      <div key={cat.name} className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">{cat.name}</span>
-                        </div>
-                        <span className="text-sm font-black text-slate-900 dark:text-white">৳{cat.value.toLocaleString("bn-BD")}</span>
+                      <div>
+                        <p className="font-black text-slate-900 leading-tight">{tx.customerName || "অজানা কাস্টমার"}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1 mt-1">
+                          <Calendar size={10} /> {tx.date} <Clock size={10} className="ml-1" /> {tx.time}
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-[300px] text-slate-400">
-                  <ArrowDownLeft size={48} className="opacity-10 mb-4" />
-                  <p className="text-sm font-bold">ব্যয়ের কোনো ডেটা নেই</p>
-                </div>
-              )}
-            </Card>
-          </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-black text-lg ${tx.type === 'gave' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        {tx.type === 'gave' ? '-' : '+'} ৳{tx.amount.toLocaleString("bn-BD")}
+                      </p>
+                      <p className="text-[10px] font-bold text-slate-400 italic">"{tx.note}"</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-[2rem] p-16 text-center border-2 border-dashed border-slate-100">
+               <p className="text-slate-400 font-bold italic">এই সময়ে কোনো লেনদেন হয়নি</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

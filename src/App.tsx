@@ -2,14 +2,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
 import { useEffect, useState } from "react";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "./lib/firebase";
-
 import { initAuthListener, useAuthStore } from "./store/useAuthStore";
-import { useKhataStore } from "./store/useKhataStore";
-
+import { useLedgerStore } from "./store/useLedgerStore";
 import BottomNav from "./components/BottomNav";
-import AddTransactionModal from "./components/AddTransactionModal";
+import AddCustomerModal from "./components/AddCustomerModal";
 import Home from "./pages/Home";
-import Transactions from "./pages/Transactions";
+import CustomerDetails from "./pages/CustomerDetails";
 import Reports from "./pages/Reports";
 import More from "./pages/More";
 import Login from "./pages/Login";
@@ -17,54 +15,42 @@ import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 
 function App() {
-  const [modalOpen, setModalOpen] = useState(false);
   const { user, loading } = useAuthStore();
-  const setTransactions = useKhataStore((state) => state.setTransactions);
+  const setCustomers = useLedgerStore((state) => state.setCustomers);
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
 
   useEffect(() => {
     initAuthListener();
   }, []);
 
   useEffect(() => {
-    let unsubscribe = () => {};
-
+    let unsubCustomers = () => {};
     if (user) {
-      const q = query(
-        collection(db, "users", user.uid, "transactions"),
-        orderBy("createdAt", "desc"), 
+      const qCust = query(
+        collection(db, "users", user.uid, "customers"),
+        orderBy("updatedAt", "desc"),
       );
-
-      unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const txList = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as any[];
-
-          setTransactions(txList);
+      unsubCustomers = onSnapshot(
+        qCust,
+        (snap) => {
+          setCustomers(
+            snap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[],
+          );
         },
-        (error) => {
-          console.error("Firestore sync error:", error);
-        },
+        (err) => console.error(err),
       );
     } else {
-      setTransactions([]);
+      setCustomers([]);
     }
+    return () => unsubCustomers();
+  }, [user, setCustomers]);
 
-    return () => unsubscribe();
-  }, [user, setTransactions]);
-
-  if (loading) {
+  if (loading)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-bold text-slate-500 italic">
-          আমার খাতা লোড হচ্ছে...
-        </p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white text-emerald-600 font-bold italic">
+        টালিখাতা 365 লোড হচ্ছে...
       </div>
     );
-  }
 
   return (
     <Router>
@@ -80,15 +66,15 @@ function App() {
             path="/"
             element={
               user ? (
-                <Home onAddClick={() => setModalOpen(true)} />
+                <Home onAddCustomerClick={() => setCustomerModalOpen(true)} />
               ) : (
                 <Navigate to="/login" />
               )
             }
           />
           <Route
-            path="/transactions"
-            element={user ? <Transactions /> : <Navigate to="/login" />}
+            path="/customer/:id"
+            element={user ? <CustomerDetails /> : <Navigate to="/login" />}
           />
           <Route
             path="/profile"
@@ -102,7 +88,6 @@ function App() {
             path="/more"
             element={user ? <More /> : <Navigate to="/login" />}
           />
-
           <Route
             path="/login"
             element={!user ? <Login /> : <Navigate to="/" />}
@@ -112,10 +97,12 @@ function App() {
             element={!user ? <Signup /> : <Navigate to="/" />}
           />
         </Routes>
-
         {user && (
           <>
-            <AddTransactionModal open={modalOpen} onOpenChange={setModalOpen} />
+            <AddCustomerModal
+              open={customerModalOpen}
+              onOpenChange={setCustomerModalOpen}
+            />
             <BottomNav />
           </>
         )}

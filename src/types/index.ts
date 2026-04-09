@@ -44,3 +44,20 @@ export const popularCategories = {
     'অন্যান্য'
   ]
 };
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  totalDue: number; 
+  updatedAt: number;
+}
+
+export interface LedgerEntry {
+  id: string;
+  amount: number;
+  type: 'gave' | 'received'; 
+  date: string;
+  note: string;
+  createdAt: number;
+}
